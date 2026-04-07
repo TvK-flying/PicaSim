@@ -2,7 +2,7 @@
 
 This contains the complete source, including (custom) dependencies, for PicaSim flight simulator: https://rowlhouse.co.uk/PicaSim/ 
 
-It also contains tools and build infrastructure for Windows and Android (iOS is not yet supported).
+It also contains tools and build infrastructure for Windows, macOS, Android and iOS.
 
 I have tried to make sure that credit/licences etc are indicated correctly - please let me know of any errors so that I can correct them.
 
@@ -138,7 +138,7 @@ The application must be run from the `data/` directory so it can find game asset
 cd data && ../build/windows-x64/Debug/PicaSim.exe
 ```
 
-### Release Packaging
+### Release Packaging (Windows)
 
 Build release first, then install:
 
@@ -148,6 +148,95 @@ cmake --install build/windows-x64 --config Release
 ```
 
 This creates a standalone distribution in `dist/PicaSim-X_Y_Z/` (version extracted from VERSIONS.txt).
+
+### macOS Build
+
+#### Prerequisites
+
+- **Xcode Command Line Tools** (or full Xcode)
+- **CMake 3.20+**
+- **vcpkg** - provides glad
+
+```bash
+# First-time setup
+git submodule update --init --recursive
+git clone https://github.com/microsoft/vcpkg.git ~/vcpkg
+~/vcpkg/bootstrap-vcpkg.sh
+export VCPKG_ROOT=~/vcpkg
+```
+
+#### Building
+
+```bash
+VCPKG_ROOT=~/vcpkg cmake --preset macos-arm64
+VCPKG_ROOT=~/vcpkg cmake --build --preset macos-arm64-debug     # Debug
+VCPKG_ROOT=~/vcpkg cmake --build --preset macos-arm64-release   # Release
+
+# Run (must be from data/ directory)
+cd data && ../build/macos-arm64/Debug/PicaSim
+```
+
+#### macOS Distribution
+
+The full pipeline to create a signed, notarized DMG:
+
+```bash
+# 1. Build and install
+VCPKG_ROOT=~/vcpkg cmake --build --preset macos-arm64-release
+cmake --install build/macos-arm64 --config Release
+
+# 2. Create .app bundle (copies icon from resources/PicaSim.icns)
+./macos_create_app_bundle.sh dist/PicaSim-*/ dist
+
+# 3. Sign, create DMG, notarize and staple (calls macos_create_dmg.sh internally)
+#    Requires: PICASIM_MACOS_CERT env var, notarytool credentials stored in keychain
+#    One-time setup: xcrun notarytool store-credentials "picasim-profile"
+PICASIM_MACOS_CERT="Developer ID Application: ..." ./macos_notarize.sh
+```
+
+Output: `dist/PicaSim-X.Y.Z.dmg` (signed, notarized, stapled).
+
+If you only need an unsigned DMG (no Apple Developer account):
+```bash
+./macos_create_app_bundle.sh dist/PicaSim-*/ dist
+./macos_create_dmg.sh dist/PicaSim.app dist
+```
+
+### iOS Build
+
+#### Prerequisites
+
+- **Xcode** (full install, not just CLI tools)
+- **Apple Developer account** (for device deployment and TestFlight)
+- **CMake 3.20+**
+
+#### Building
+
+```bash
+cmake --preset ios-device
+cmake --build --preset ios-device-debug
+
+# Open in Xcode for device deployment
+open build/ios-device/PicaSim.xcodeproj
+```
+
+#### iOS Distribution (TestFlight)
+
+```bash
+# Create archive with dSYM and open in Xcode Organizer for upload
+./ios_archive.sh
+```
+
+**Important:** Do not use Xcode's Product > Archive — CMake hardcodes build paths that prevent dSYMs from being included in the archive. `ios_archive.sh` works around this.
+
+### Icon Generation
+
+All platform icons (Windows `.ico`, macOS `.icns`, Android, iOS) are generated from source images in `resources/AndroidIcon/`:
+
+```bash
+pip install Pillow
+python3 resources/generate_icons.py
+```
 
 ### Building the Installer (Windows)
 
@@ -212,7 +301,7 @@ From the project root:
 # Debug build (arm64-v8a + x86_64)
 cd android
 gradlew.bat assembleDebug        # Windows
-./gradlew assembleDebug           # Linux/macOS
+./gradlew assembleDebug           # Linux/macOS (set python to python3 and use jdk temurin 17)
 ```
 
 The APK is output to `android/app/build/outputs/apk/debug/app-debug.apk`.
@@ -261,13 +350,14 @@ adb logcat -s SDL:* PicaSim:* OpenAL:*
 ```
 PicaSim2/
 ├── android/                  # Android Gradle project
+├── ios/                      # iOS assets (icons, LaunchScreen, Info.plist)
 ├── build/                    # Build output (gitignored)
 │   └── windows-x64/          # One dir per platform (contains .sln)
 ├── data/                     # Working directory for running
 │   ├── SystemData/           # Read-only game assets (committed)
 │   ├── SystemSettings/       # Read-only presets (committed)
 │   └── Menus/                # Menu assets (committed)
-├── resources/                # App icons and related assets
+├── resources/                # App icons, related assets and generate_icons.py
 ├── source/                   # Source code
 │   ├── Framework/            # Reusable engine components
 │   ├── PicaSim/              # Application code
