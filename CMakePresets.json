@@ -82,7 +82,8 @@
       "inherits": "vcpkg-base",
       "generator": "Ninja Multi-Config",
       "cacheVariables": {
-        "VCPKG_TARGET_TRIPLET": "x64-osx"
+        "VCPKG_TARGET_TRIPLET": "x64-osx",
+        "CMAKE_IGNORE_PREFIX_PATH": "/usr/local;/usr/X11R6"
       },
       "condition": {
         "type": "equals",
