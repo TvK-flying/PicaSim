@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Claude's goal
 
-The goal for Claude is to help develop PicaSim across Windows, Android, macOS and iOS.
+The goal for Claude is to help develop PicaSim across Windows, Linux, Android, macOS and iOS.
 
-The original project has been ported from Marmalade SDK to SDL2 + OpenGL. Windows, Android, macOS and iOS ports are functional.
+The original project has been ported from Marmalade SDK to SDL2 + OpenGL. Windows, Linux, Android, macOS and iOS ports are functional.
 
 The original project is owned by me, so I have all rights to do this.
 
@@ -32,6 +32,20 @@ Always use CMake presets:
 - Deploy via Xcode: `open build/ios-device/PicaSim.xcodeproj`
 - Archive for TestFlight: `./ios_archive.sh` (do NOT use Xcode's Product→Archive — dSYMs won't be included, see iOS notes below)
 
+**Linux (x64):**
+- Configure: `cmake --preset linux-x64`
+- Debug: `cmake --build --preset linux-x64-debug`
+- Release: `cmake --build --preset linux-x64-release`
+- Run: `cd data && ../build/linux-x64/Debug/PicaSim` (must run from `data/` directory)
+- AppImage: `./linux_create_appimage.sh build/linux-x64 dist`
+
+**Linux (arm64):**
+- Configure: `cmake --preset linux-arm64`
+- Debug: `cmake --build --preset linux-arm64-debug`
+- Release: `cmake --build --preset linux-arm64-release`
+- Run: `cd data && ../build/linux-arm64/Debug/PicaSim` (must run from `data/` directory)
+- AppImage: `./linux_create_appimage.sh build/linux-arm64 dist`
+
 **Android:**
 - `cd android && gradlew.bat assembleDebug`
 
@@ -43,11 +57,11 @@ Never volunteer to commit changes. Only create commits when explicitly requested
 
 ## Project Overview
 
-PicaSim is a cross-platform R/C flight simulator built with C++. It simulates radio-controlled aircraft with realistic physics, multiple aircraft types (40+), and various environments. The project targets Windows, macOS, Android, and iOS.
+PicaSim is a cross-platform R/C flight simulator built with C++. It simulates radio-controlled aircraft with realistic physics, multiple aircraft types (40+), and various environments. The project targets Windows, Linux, macOS, Android, and iOS.
 
 **Current stack**: SDL2 (window/input), OpenGL/GLES2 (rendering), OpenAL-Soft (audio), GLM (math), Bullet Physics (physics), Dear ImGui (UI).
 
-**Note**: The project was migrated from Marmalade SDK (no longer commercially available) to SDL2 + OpenGL. Most dependencies are built from git submodules in `third_party/`; vcpkg provides only glad and OpenXR on desktop.
+**Note**: The project was migrated from Marmalade SDK (no longer commercially available) to SDL2 + OpenGL. Most dependencies are built from git submodules in `third_party/`; vcpkg provides only glad and OpenXR on Windows desktop. Linux builds do not use vcpkg.
 
 ## Architecture
 
@@ -148,6 +162,15 @@ All configuration uses XML parsed via tinyxml (`source/tinyxml/`).
 - **TestFlight/Archive**: CMake's Xcode generator hardcodes `CONFIGURATION_BUILD_DIR` to an absolute path per-target, which prevents Xcode from copying dSYMs into the archive. Use `ios_archive.sh` instead of Xcode's Product→Archive. The script does a two-step process: (1) `xcodebuild build` with CMake's original paths to compile all static libraries where the linker expects them, (2) `xcodebuild archive` with `CONFIGURATION_BUILD_DIR` overridden to `$(BUILD_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)` so dSYMs land in the archive. Both steps are needed — skipping step 1 on a clean build causes linker failures because the override moves libraries away from CMake's hardcoded search paths
 - Info.plist includes `NSBluetoothAlwaysUsageDescription` and `NSBluetoothPeripheralUsageDescription` for game controller support via Bluetooth
 
+### Linux
+
+- **OpenGL 2.1** with compatibility profile, using system Mesa (`<GL/gl.h>` + `<GL/glext.h>`)
+- `GL_GLEXT_PROTOTYPES` is defined before GL headers to expose OpenGL 2.0+ function declarations (GLAD is not used on Linux)
+- VR/OpenXR is disabled on Linux builds (presets set `PICASIM_ENABLE_VR=OFF`)
+- Linux presets do not use vcpkg (`VCPKG_MANIFEST_MODE=OFF`) — all dependencies come from submodules and system packages
+- Required system packages: `libgl-dev`, `libx11-dev`, `libxext-dev`, `libpulse-dev`, `libasound2-dev`
+- Supported architectures: x86_64 and aarch64 (ARM64)
+
 ### Bullet Physics (source/bullet-2.81/)
 
 - `btScalar.h` had a `#end` typo (should be `#endif`) and malformed `#else` nesting in the DEBUG assert block — fixed for ARM64/clang
@@ -158,7 +181,7 @@ All configuration uses XML parsed via tinyxml (`source/tinyxml/`).
 
 GitHub Actions workflows in `.github/workflows/`:
 - `windows-build.yml` - Windows x64 build + install
-- `macos-build.yml` - macOS arm64 + x86_64 builds, universal binary, DMG creation
+- `linux-build.yml` - Linux x64 + arm64 builds, AppImage packaging
 - `android-build.yml` - Android debug APK build
 - `ios-build.yml` - iOS device build (unsigned IPA)
 
@@ -182,9 +205,12 @@ Individual scripts:
 **Icon generation:**
 - `resources/generate_icons.py` - Generates Windows `.ico`, macOS `.icns`, Android and iOS icons from source PNGs in `resources/AndroidIcon/`
 
+**Linux distribution:**
+- `./linux_create_appimage.sh <build_dir> [output_dir]` — Creates AppImage from release build. Downloads `appimagetool` automatically if not found. Supports x86_64 and aarch64.
+
 ## Migration Status
 
-All four platform ports (Windows, Android, macOS, iOS) are **functional**.
+All five platform ports (Windows, Linux, Android, macOS, iOS) are **functional**.
 
 ### Completed
 
@@ -215,6 +241,14 @@ All four platform ports (Windows, Android, macOS, iOS) are **functional**.
 - `dirent`-based directory scanning (no std::filesystem on iOS 12)
 - Pixel-based UI scaling
 - App icons, LaunchScreen, PrivacyInfo.xcprivacy in `ios/`
+
+**Linux Desktop**
+- CMake presets `linux-x64` and `linux-arm64` (Ninja Multi-Config, no vcpkg)
+- OpenGL 2.1 compatibility profile via system Mesa
+- `GL_GLEXT_PROTOTYPES` for OpenGL 2.0+ function declarations (no GLAD loader)
+- VR disabled (no OpenXR dependency on Linux)
+- AppImage packaging via `linux_create_appimage.sh`
+- Tested on Ubuntu 24.04 and Kali (Debian) ARM
 
 **Audio (OpenAL-Soft)**
 - Complete 3D positional audio with distance attenuation

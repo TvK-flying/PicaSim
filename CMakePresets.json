@@ -46,11 +46,28 @@
     {
       "name": "linux-x64",
       "displayName": "Linux x64",
-      "description": "Linux x64 build with vcpkg",
-      "inherits": "vcpkg-base",
+      "description": "Linux x64 build without vcpkg (no GLAD/OpenXR needed)",
+      "inherits": "base",
       "generator": "Ninja Multi-Config",
       "cacheVariables": {
-        "VCPKG_TARGET_TRIPLET": "x64-linux"
+        "PICASIM_ENABLE_VR": "OFF",
+        "VCPKG_MANIFEST_MODE": "OFF"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "linux-arm64",
+      "displayName": "Linux ARM64",
+      "description": "Linux ARM64 (aarch64) build without vcpkg (no GLAD/OpenXR needed)",
+      "inherits": "base",
+      "generator": "Ninja Multi-Config",
+      "cacheVariables": {
+        "PICASIM_ENABLE_VR": "OFF",
+        "VCPKG_MANIFEST_MODE": "OFF"
       },
       "condition": {
         "type": "equals",
@@ -149,6 +166,18 @@
       "name": "linux-x64-release",
       "displayName": "Linux x64 Release",
       "configurePreset": "linux-x64",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-arm64-debug",
+      "displayName": "Linux ARM64 Debug",
+      "configurePreset": "linux-arm64",
+      "configuration": "Debug"
+    },
+    {
+      "name": "linux-arm64-release",
+      "displayName": "Linux ARM64 Release",
+      "configurePreset": "linux-arm64",
       "configuration": "Release"
     },
     {

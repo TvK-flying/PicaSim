@@ -1,0 +1,69 @@
+name: Linux Build
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            configure_preset: linux-x64
+            build_preset: linux-x64-release
+            runner: ubuntu-24.04
+            appimage_arch: x86_64
+          - arch: arm64
+            configure_preset: linux-arm64
+            build_preset: linux-arm64-release
+            runner: ubuntu-24.04-arm
+            appimage_arch: aarch64
+
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake ninja-build g++ \
+            libgl-dev libgles-dev libegl-dev \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
+            libxfixes-dev libxss-dev libxkbcommon-dev \
+            libasound2-dev libpulse-dev libdbus-1-dev \
+            libwayland-dev libpipewire-0.3-dev \
+            rsync
+
+      - name: Configure CMake
+        run: |
+          cmake --preset ${{ matrix.configure_preset }}
+
+      - name: Build Release
+        run: |
+          cmake --build --preset ${{ matrix.build_preset }}
+
+      - name: Create AppImage
+        run: |
+          ./linux_create_appimage.sh build/${{ matrix.configure_preset }} dist
+
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: picasim-linux-${{ matrix.arch }}
+          path: dist/PicaSim-*.AppImage
+          retention-days: 30
