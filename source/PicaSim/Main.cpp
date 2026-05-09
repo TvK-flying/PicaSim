@@ -33,6 +33,10 @@
 #include <unistd.h>  // _exit
 #endif
 
+#ifdef PICASIM_IOS
+#include <unistd.h>  // chdir
+#endif
+
 //======================================================================================================================
 // Attempt to lock to a 60 frames per second
 #define MS_PER_FRAME (1000 / 60)
@@ -169,6 +173,18 @@ int main(int argc, char* argv[])
         return 1;
     }
     TRACE_FILE_IF(ONCE_1) TRACE("Asset extraction complete");
+#endif
+
+#ifdef PICASIM_IOS
+    // On iOS the app bundle contains data/ alongside the executable.
+    // chdir there so all relative paths (SystemSettings/, SystemData/, etc.) resolve correctly.
+    {
+        std::string dataDir = FileSystem::GetBasePath() + "data";
+        if (chdir(dataDir.c_str()) == 0)
+            TRACE_FILE_IF(ONCE_1) TRACE("iOS: chdir to %s", dataDir.c_str());
+        else
+            TRACE_FILE_IF(ONCE_1) TRACE("iOS: chdir FAILED for %s", dataDir.c_str());
+    }
 #endif
 
     // Reset stale static state for Android relaunch safety.
@@ -337,7 +353,18 @@ int main(int argc, char* argv[])
         LoadingScreen* initialLoadingScreen = new LoadingScreen(GetPS(PS_LOADING, gameSettings.mOptions.mLanguage), gameSettings, true, false, true);
 
         GLint depthBits = 0;
+#if defined(PICASIM_MACOS)
+        // On macOS, GL_DEPTH_BITS returns 0 even when a depth buffer exists (OpenGL 2.1 quirk).
+        // Use glGetFramebufferAttachmentParameteriv (available since OpenGL 3.0 / as extension on 2.1)
+        // with fallback to GL_DEPTH_BITS so the bogus "no depth buffer" dialog is not shown.
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                                              GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE, &depthBits);
+        if (depthBits == 0)
+            glGetIntegerv(GL_DEPTH_BITS, &depthBits);
+#else
         glGetIntegerv(GL_DEPTH_BITS, &depthBits);
+#endif
         TRACE_FILE_IF(ONCE_1) TRACE("Depth buffer = %d bits", depthBits);
         if (depthBits == 0)
         {
