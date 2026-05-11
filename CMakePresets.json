@@ -51,6 +51,7 @@
       "generator": "Ninja Multi-Config",
       "cacheVariables": {
         "PICASIM_ENABLE_VR": "OFF",
+        "SDL_PIPEWIRE": "OFF",
         "VCPKG_MANIFEST_MODE": "OFF"
       },
       "condition": {
@@ -67,6 +68,7 @@
       "generator": "Ninja Multi-Config",
       "cacheVariables": {
         "PICASIM_ENABLE_VR": "OFF",
+        "SDL_PIPEWIRE": "OFF",
         "VCPKG_MANIFEST_MODE": "OFF"
       },
       "condition": {
