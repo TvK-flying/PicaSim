@@ -2,7 +2,7 @@
 
 This contains the complete source, including (custom) dependencies, for PicaSim flight simulator: https://rowlhouse.co.uk/PicaSim/ 
 
-It also contains tools and build infrastructure for Windows, macOS, Android and iOS.
+It also contains tools and build infrastructure for Windows, Linux, macOS, Android and iOS.
 
 I have tried to make sure that credit/licences etc are indicated correctly - please let me know of any errors so that I can correct them.
 
@@ -69,7 +69,7 @@ Within this directory:
 
 ## Build System
 
-The project uses CMake with dependencies built from git submodules. vcpkg is used only for glad and OpenXR on desktop.
+The project uses CMake with dependencies built from git submodules. vcpkg is used only for glad and OpenXR on Windows. Linux builds use system OpenGL headers directly.
 
 ### Prerequisites (Windows)
 
@@ -148,6 +148,74 @@ cmake --install build/windows-x64 --config Release
 ```
 
 This creates a standalone distribution in `dist/PicaSim-X_Y_Z/` (version extracted from VERSIONS.txt).
+
+### Linux Build
+
+#### Prerequisites
+
+- **GCC or Clang** (C++17 support)
+- **CMake 3.20+**
+- **Ninja** build system
+- Development libraries (install via your package manager)
+
+```bash
+# Ubuntu/Debian
+sudo apt install cmake ninja-build g++ \
+  libgl-dev libgles-dev libegl-dev \
+  libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
+  libxfixes-dev libxss-dev libxkbcommon-dev \
+  libasound2-dev libpulse-dev libdbus-1-dev \
+  libwayland-dev libpipewire-0.3-dev rsync
+
+# Fedora/RHEL (untested)
+sudo dnf install cmake ninja-build gcc-c++ \
+  mesa-libGL-devel mesa-libEGL-devel \
+  libX11-devel libXext-devel libXrandr-devel libXcursor-devel libXi-devel \
+  libXfixes-devel libXScrnSaver-devel libxkbcommon-devel \
+  alsa-lib-devel pulseaudio-libs-devel dbus-devel \
+  wayland-devel pipewire-devel rsync
+
+# Arch (untested)
+sudo pacman -S cmake ninja gcc mesa libx11 libxext libxrandr libxcursor \
+  libxi libxfixes libxss libxkbcommon alsa-lib libpulse dbus \
+  wayland pipewire rsync
+```
+
+**Note:** vcpkg is NOT required for Linux builds.
+
+#### Building
+
+```bash
+# Initialise submodules (first time only)
+git submodule update --init --recursive
+
+# x86_64
+cmake --preset linux-x64
+cmake --build --preset linux-x64-debug      # Debug
+cmake --build --preset linux-x64-release     # Release
+
+# ARM64 (aarch64)
+cmake --preset linux-arm64
+cmake --build --preset linux-arm64-debug     # Debug
+cmake --build --preset linux-arm64-release   # Release
+
+# Run (must be from data/ directory)
+cd data && ../build/linux-x64/Debug/PicaSim
+```
+
+#### Linux Distribution (AppImage)
+
+Create a portable AppImage that runs on most Linux distributions:
+
+```bash
+# Build release first
+cmake --build --preset linux-x64-release   # or linux-arm64-release
+
+# Create AppImage (downloads appimagetool automatically if needed)
+./linux_create_appimage.sh build/linux-x64 dist
+```
+
+Output: `dist/PicaSim-X.Y.Z-x86_64.AppImage` (or `aarch64` on ARM).
 
 ### macOS Build
 
@@ -352,7 +420,7 @@ PicaSim2/
 ├── android/                  # Android Gradle project
 ├── ios/                      # iOS assets (icons, LaunchScreen, Info.plist)
 ├── build/                    # Build output (gitignored)
-│   └── windows-x64/          # One dir per platform (contains .sln)
+│   └── <preset-name>/        # One dir per platform preset
 ├── data/                     # Working directory for running
 │   ├── SystemData/           # Read-only game assets (committed)
 │   ├── SystemSettings/       # Read-only presets (committed)

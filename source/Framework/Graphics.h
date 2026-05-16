@@ -19,6 +19,10 @@
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
 #else
+// Linux: GL_GLEXT_PROTOTYPES exposes OpenGL 2.0+ function declarations
+#ifndef GL_GLEXT_PROTOTYPES
+#define GL_GLEXT_PROTOTYPES
+#endif
 #include <GL/gl.h>
 #include <GL/glext.h>
 #endif

@@ -13,7 +13,12 @@
 #elif defined(PICASIM_MACOS)
 #include <OpenGL/gl.h>
 #else
+// Linux: GL_GLEXT_PROTOTYPES exposes OpenGL 2.0+ function declarations
+#ifndef GL_GLEXT_PROTOTYPES
+#define GL_GLEXT_PROTOTYPES
+#endif
 #include <GL/gl.h>
+#include <GL/glext.h>
 #endif
 
 // Global window instance
