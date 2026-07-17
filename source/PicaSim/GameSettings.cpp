@@ -2561,6 +2561,13 @@ bool ControllerSettings::ControlSetting::WriteToDoc(TiXmlDocument& doc, int i, i
     WRITE_DOUBLE_ATTRIBUTE(mScale);
     WRITE_DOUBLE_ATTRIBUTE(mExponential);
     WRITE_DOUBLE_ATTRIBUTE(mTrim);
+    WRITE_ATTRIBUTE(mUseThrottleCurve);
+    for (int k = 0 ; k != NUM_THROTTLE_CURVE_POINTS ; ++k)
+    {
+        char curveAttrName[64];
+        sprintf(curveAttrName, "mThrottleCurve_%d", k);
+        element->SetDoubleAttribute(curveAttrName, mThrottleCurve[k]);
+    }
     return true;
 }
 
@@ -2581,7 +2588,34 @@ bool ControllerSettings::ControlSetting::ReadFromDoc(TiXmlDocument& doc, int i, 
     READ_ATTRIBUTE(mScale);
     READ_ATTRIBUTE(mExponential);
     READ_ATTRIBUTE(mTrim);
+    READ_ATTRIBUTE(mUseThrottleCurve);
+    for (int k = 0 ; k != NUM_THROTTLE_CURVE_POINTS ; ++k)
+    {
+        char curveAttrName[64];
+        sprintf(curveAttrName, "mThrottleCurve_%d", k);
+        double curveValue;
+        if (element->QueryDoubleAttribute(curveAttrName, &curveValue) == TIXML_SUCCESS)
+            mThrottleCurve[k] = (float) curveValue;
+    }
     return true;
+}
+
+//======================================================================================================================
+float ControllerSettings::ControlSetting::EvaluateThrottleCurve(float x) const
+{
+    if (x < 0.0f)
+        x = 0.0f;
+    else if (x > 1.0f)
+        x = 1.0f;
+
+    const int numSegments = NUM_THROTTLE_CURVE_POINTS - 1;
+    float scaledX = x * numSegments;
+    int segment = (int) scaledX;
+    if (segment >= numSegments)
+        segment = numSegments - 1;
+    float frac = scaledX - segment;
+
+    return mThrottleCurve[segment] + frac * (mThrottleCurve[segment + 1] - mThrottleCurve[segment]);
 }
 
 //======================================================================================================================
