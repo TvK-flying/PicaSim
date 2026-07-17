@@ -667,7 +667,17 @@ void HumanController::EntityUpdate(float deltaTime, int entityLevel)
             mProcessedInputControls[i] = ClampToRange(mProcessedInputControls[i], -1.0f, 0.0f);
 
         // Process them
-        if (mProcessedInputControls[i] >= 0.0f)
+        if (controlSettings[i].mUseThrottleCurve)
+        {
+            // 5-point custom curve (0/25/50/75/100% stick position -> user-set output height),
+            // linearly interpolated between points. Sign is preserved so reversed/braking
+            // setups still work.
+            if (mProcessedInputControls[i] >= 0.0f)
+                mProcessedInputControls[i] = controlSettings[i].EvaluateThrottleCurve(mProcessedInputControls[i]);
+            else
+                mProcessedInputControls[i] = -controlSettings[i].EvaluateThrottleCurve(-mProcessedInputControls[i]);
+        }
+        else if (mProcessedInputControls[i] >= 0.0f)
             mProcessedInputControls[i] = powf(mProcessedInputControls[i], controlSettings[i].mExponential);
         else
             mProcessedInputControls[i] = -powf(-mProcessedInputControls[i], controlSettings[i].mExponential);
