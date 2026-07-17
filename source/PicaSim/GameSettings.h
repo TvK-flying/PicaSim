@@ -85,16 +85,34 @@ struct ControllerSettings : public Settings
 
     struct ControlSetting
     {
+        static const int NUM_THROTTLE_CURVE_POINTS = 5;
+
         // Note that each control input has a normal range of -1 to +1
-        ControlSetting() : mAutoCentre(true), mClamp(CONTROL_CLAMP_NONE), mScale(1.0f), mExponential(1.0f), mTrim(0.0f) {}
+        ControlSetting() : mAutoCentre(true), mClamp(CONTROL_CLAMP_NONE), mScale(1.0f), mExponential(1.0f), mTrim(0.0f), mUseThrottleCurve(false)
+        {
+            // Default curve is a straight line (0%->0%, 25%->25%, ... 100%->100%)
+            for (int i = 0 ; i != NUM_THROTTLE_CURVE_POINTS ; ++i)
+                mThrottleCurve[i] = i / (float) (NUM_THROTTLE_CURVE_POINTS - 1);
+        }
         bool WriteToDoc(TiXmlDocument& doc, int i, int j) const;
         bool ReadFromDoc(TiXmlDocument& doc, int i, int j);
+
+        // Evaluates the custom throttle curve. x is the (unsigned) stick position in the
+        // range 0..1. The curve is defined by mThrottleCurve[0..4], the output heights
+        // (0..1) at fixed input positions 0%, 25%, 50%, 75% and 100%, linearly
+        // interpolated between the points either side of x.
+        float EvaluateThrottleCurve(float x) const;
 
         bool mAutoCentre;
         ControlClamp mClamp;
         float mScale;
         float mExponential;
         float mTrim;
+
+        // Custom 5-point throttle curve. When mUseThrottleCurve is true this is used
+        // instead of mExponential to shape this control's response.
+        bool mUseThrottleCurve;
+        float mThrottleCurve[NUM_THROTTLE_CURVE_POINTS];
     };
 
     struct Mix
