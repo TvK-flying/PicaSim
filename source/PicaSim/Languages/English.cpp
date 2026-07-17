@@ -512,6 +512,12 @@ void InitStringsEN(const char** txt)
   txt[PS_CLAMPING] = "Clamping";
   txt[PS_EXPONENTIAL] = "Exponential";
   txt[PS_SPRING] = "Spring";
+  txt[PS_USETHROTTLECURVE] = "Use custom throttle curve";
+  txt[PS_THROTTLECURVE0] = "Curve height at 0%";
+  txt[PS_THROTTLECURVE25] = "Curve height at 25%";
+  txt[PS_THROTTLECURVE50] = "Curve height at 50%";
+  txt[PS_THROTTLECURVE75] = "Curve height at 75%";
+  txt[PS_THROTTLECURVE100] = "Curve height at 100%";
   txt[PS_POSITIVE] = "Positive";
   txt[PS_NEGATIVE] = "Negative";
   txt[PS_ROLLSTICKMOVEMENT] = "Roll stick movement";
