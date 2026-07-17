@@ -1,4 +1,4 @@
-﻿#include "SettingsMenu.h"
+#include "SettingsMenu.h"
 #include "SettingsWidgets.h"
 #include "FileMenu.h"
 #include "UIHelpers.h"
@@ -2063,7 +2063,21 @@ void SettingsMenu::RenderControllerTab()
                     int clamp = (int)setting.mClamp;
                     if (SettingsWidgets::Combo(TXT(PS_CLAMPING), clamp, clampDescs, ControllerSettings::CONTROL_CLAMP_MAX))
                         setting.mClamp = (ControllerSettings::ControlClamp)clamp;
-                    SettingsWidgets::SliderFloat(TXT(PS_EXPONENTIAL), setting.mExponential, 0.5f, 3.0f);
+                    SettingsWidgets::Checkbox(TXT(PS_USETHROTTLECURVE), setting.mUseThrottleCurve);
+                    if (setting.mUseThrottleCurve)
+                    {
+                        // 5-point custom throttle curve: user only adjusts the output
+                        // height at each fixed stick position (0/25/50/75/100%).
+                        SettingsWidgets::SliderFloat(TXT(PS_THROTTLECURVE0),   setting.mThrottleCurve[0], 0.0f, 1.0f);
+                        SettingsWidgets::SliderFloat(TXT(PS_THROTTLECURVE25),  setting.mThrottleCurve[1], 0.0f, 1.0f);
+                        SettingsWidgets::SliderFloat(TXT(PS_THROTTLECURVE50),  setting.mThrottleCurve[2], 0.0f, 1.0f);
+                        SettingsWidgets::SliderFloat(TXT(PS_THROTTLECURVE75),  setting.mThrottleCurve[3], 0.0f, 1.0f);
+                        SettingsWidgets::SliderFloat(TXT(PS_THROTTLECURVE100), setting.mThrottleCurve[4], 0.0f, 1.0f);
+                    }
+                    else
+                    {
+                        SettingsWidgets::SliderFloat(TXT(PS_EXPONENTIAL), setting.mExponential, 0.5f, 3.0f);
+                    }
                     SettingsWidgets::SliderFloat(TXT(PS_SCALE), setting.mScale, -2.0f, 2.0f);
                     SettingsWidgets::SliderFloat(TXT(PS_TRIM), setting.mTrim, -1.0f, 1.0f);
                     SettingsWidgets::Checkbox(TXT(PS_SPRING), setting.mAutoCentre);
