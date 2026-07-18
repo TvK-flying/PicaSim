@@ -32,6 +32,10 @@ void JetEngine::Init(class TiXmlElement* engineElement, class TiXmlHandle& aerod
     // Assume a default of 0.15s per full control
     mControlRate = 1.0f / 0.15f;
 
+    mUseThrottleCurve = false;
+    for (int iCurve = 0 ; iCurve != NUM_THROTTLE_CURVE_POINTS ; ++iCurve)
+        mThrottleCurve[iCurve] = iCurve / (float) (NUM_THROTTLE_CURVE_POINTS - 1);
+
     // Read data for this engine
     mName = readStringFromXML(engineElement, "name");
     readFromXML(engineElement, "controlPerChannel0", mControlPerChannel[0]);
@@ -45,6 +49,16 @@ void JetEngine::Init(class TiXmlElement* engineElement, class TiXmlHandle& aerod
     readFromXML(engineElement, "maxSpeed", mMaxSpeed);
     readFromXML(engineElement, "controlExp", mControlExp);
     readFromXML(engineElement, "controlRate", mControlRate);
+
+    // Optional per-engine throttle curve - see PropellerEngine::ReadFromXML for the
+    // same mechanism (used e.g. so a twin-jet aircraft can give each engine its own
+    // independent throttle response).
+    readFromXML(engineElement, "useThrottleCurve", mUseThrottleCurve);
+    readFromXML(engineElement, "throttleCurve0", mThrottleCurve[0]);
+    readFromXML(engineElement, "throttleCurve25", mThrottleCurve[1]);
+    readFromXML(engineElement, "throttleCurve50", mThrottleCurve[2]);
+    readFromXML(engineElement, "throttleCurve75", mThrottleCurve[3]);
+    readFromXML(engineElement, "throttleCurve100", mThrottleCurve[4]);
 
     // Scale
     DimensionalScaling ds(as.mSizeScale, as.mMassScale, true);
@@ -142,7 +156,10 @@ void JetEngine::UpdatePrePhysics(float deltaTime, const TurbulenceData& turbulen
 
         // JetEngine control needs to be remapped, and can never be negative!
         control = ClampToRange(control, 0.0f, 1.0f);
-        control = powf(control, mControlExp);
+        if (mUseThrottleCurve)
+            control = EvaluateFivePointCurve(mThrottleCurve, control);
+        else
+            control = powf(control, mControlExp);
 
         if (mAeroplane->GetCrashed(Aeroplane::CRASHFLAG_AIRFRAME))
             control = 0.0f;
