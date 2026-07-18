@@ -669,13 +669,19 @@ void HumanController::EntityUpdate(float deltaTime, int entityLevel)
         // Process them
         if (controlSettings[i].mUseThrottleCurve)
         {
-            // 5-point custom curve (0/25/50/75/100% stick position -> user-set output height),
-            // linearly interpolated between points. Sign is preserved so reversed/braking
-            // setups still work.
-            if (mProcessedInputControls[i] >= 0.0f)
-                mProcessedInputControls[i] = controlSettings[i].EvaluateThrottleCurve(mProcessedInputControls[i]);
-            else
-                mProcessedInputControls[i] = -controlSettings[i].EvaluateThrottleCurve(-mProcessedInputControls[i]);
+            // Throttle-type controls span their whole travel across the full -1..1
+            // input range (-1 = 0% throttle, +1 = 100% throttle) - unlike a centred
+            // stick, they are NOT symmetric about zero. So remap the full -1..1 range
+            // to a normalised 0..1 stick position, evaluate the 5-point curve
+            // (0/25/50/75/100% -> user-set output height) there, then remap the 0..1
+            // result back to -1..1 to stay consistent with mScale/mTrim below.
+            float normalisedPosition = (mProcessedInputControls[i] + 1.0f) * 0.5f;
+            float curveHeight = controlSettings[i].EvaluateThrottleCurve(normalisedPosition);
+            mProcessedInputControls[i] = curveHeight * 2.0f - 1.0f;
+            // DIAGNOSTIC: uncomment to compare the raw input against the post-curve value
+            // if (i == ControllerSettings::CONTROLLER_STICK_SPEED)
+            //     TRACE("ThrottleCurve alt=%d raw=%.2f normPos=%.2f curveHeight=%.2f out=%.2f",
+            //         mGameSettings.mControllerSettings.mCurrentAltSetting, mInputControls[i], normalisedPosition, curveHeight, mProcessedInputControls[i]);
         }
         else if (mProcessedInputControls[i] >= 0.0f)
             mProcessedInputControls[i] = powf(mProcessedInputControls[i], controlSettings[i].mExponential);
