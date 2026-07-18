@@ -67,6 +67,16 @@ void PropellerEngine::ReadFromXML(TiXmlElement* engineElement, EngineData& engin
     readFromXML(engineElement, "controlRate", mControlRate);
     readFromXML(engineElement, "channelForMode", mChannelForMode);
 
+    // Optional per-engine throttle curve - lets a twin (or multi) engine aircraft
+    // give each engine its own independent throttle response. Falls back to
+    // controlExp above when useThrottleCurve isn't set.
+    readFromXML(engineElement, "useThrottleCurve", mUseThrottleCurve);
+    readFromXML(engineElement, "throttleCurve0", mThrottleCurve[0]);
+    readFromXML(engineElement, "throttleCurve25", mThrottleCurve[1]);
+    readFromXML(engineElement, "throttleCurve50", mThrottleCurve[2]);
+    readFromXML(engineElement, "throttleCurve75", mThrottleCurve[3]);
+    readFromXML(engineElement, "throttleCurve100", mThrottleCurve[4]);
+
     for (int iGyro = 0 ; iGyro != MAX_GYROS ; ++iGyro)
     {
         char txt[128];
@@ -157,6 +167,10 @@ void PropellerEngine::Init(class TiXmlElement* engineElement, class TiXmlHandle&
     // Assume a very high control rate, since this would normally be electronic, or only a small load even if using a real throttle.
     mControlRate = 1.0f / 0.05f;
     mChannelForMode = -1;
+
+    mUseThrottleCurve = false;
+    for (int iCurve = 0 ; iCurve != NUM_THROTTLE_CURVE_POINTS ; ++iCurve)
+        mThrottleCurve[iCurve] = iCurve / (float) (NUM_THROTTLE_CURVE_POINTS - 1);
 
     EngineData engineData;
 
@@ -363,7 +377,10 @@ void PropellerEngine::UpdatePrePhysics(float deltaTime, const TurbulenceData& tu
 
             // Engine control needs to be remapped, and can never be negative!
             control = ClampToRange(control, 0.0f, 1.0f);
-            control = powf(control, mControlExp);
+            if (mUseThrottleCurve)
+                control = EvaluateFivePointCurve(mThrottleCurve, control);
+            else
+                control = powf(control, mControlExp);
 
             float maxDeltaControl = mControlRate * deltaTime;
             if (control > mControl)
