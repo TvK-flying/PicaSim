@@ -2601,7 +2601,7 @@ bool ControllerSettings::ControlSetting::ReadFromDoc(TiXmlDocument& doc, int i, 
 }
 
 //======================================================================================================================
-float ControllerSettings::ControlSetting::EvaluateThrottleCurve(float x) const
+float EvaluateFivePointCurve(const float points[NUM_THROTTLE_CURVE_POINTS], float x)
 {
     if (x < 0.0f)
         x = 0.0f;
@@ -2615,7 +2615,7 @@ float ControllerSettings::ControlSetting::EvaluateThrottleCurve(float x) const
         segment = numSegments - 1;
     float frac = scaledX - segment;
 
-    return mThrottleCurve[segment] + frac * (mThrottleCurve[segment + 1] - mThrottleCurve[segment]);
+    return points[segment] + frac * (points[segment + 1] - points[segment]);
 }
 
 //======================================================================================================================
