@@ -12,6 +12,17 @@
 
 bool GetFileChecksum(uint32& checksum, const char* file);
 
+// Shared by ControllerSettings::ControlSetting and any per-engine throttle curve
+// (e.g. Engine/PropellerEngine/JetEngine) so every 5-point curve in the game uses
+// identical interpolation math.
+static const int NUM_THROTTLE_CURVE_POINTS = 5;
+
+// Evaluates a 5-point curve. x is the normalised input position in [0,1] (values
+// outside are clamped). points[0..4] are the output heights (0..1) at fixed input
+// positions 0%, 25%, 50%, 75% and 100%, linearly interpolated between the two
+// points either side of x.
+float EvaluateFivePointCurve(const float points[NUM_THROTTLE_CURVE_POINTS], float x);
+
 //======================================================================================================================
 struct SettingsChangeActions
 {
@@ -85,8 +96,6 @@ struct ControllerSettings : public Settings
 
     struct ControlSetting
     {
-        static const int NUM_THROTTLE_CURVE_POINTS = 5;
-
         // Note that each control input has a normal range of -1 to +1
         ControlSetting() : mAutoCentre(true), mClamp(CONTROL_CLAMP_NONE), mScale(1.0f), mExponential(1.0f), mTrim(0.0f), mUseThrottleCurve(false)
         {
@@ -101,7 +110,7 @@ struct ControllerSettings : public Settings
         // range 0..1. The curve is defined by mThrottleCurve[0..4], the output heights
         // (0..1) at fixed input positions 0%, 25%, 50%, 75% and 100%, linearly
         // interpolated between the points either side of x.
-        float EvaluateThrottleCurve(float x) const;
+        float EvaluateThrottleCurve(float x) const {return EvaluateFivePointCurve(mThrottleCurve, x);}
 
         bool mAutoCentre;
         ControlClamp mClamp;
