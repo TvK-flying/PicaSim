@@ -77,6 +77,9 @@ void PropellerEngine::ReadFromXML(TiXmlElement* engineElement, EngineData& engin
     readFromXML(engineElement, "throttleCurve75", mThrottleCurve[3]);
     readFromXML(engineElement, "throttleCurve100", mThrottleCurve[4]);
 
+    // Flips this engine's net thrust direction (1.0 = normal, -1.0 = reverse).
+    readFromXML(engineElement, "thrustMultiplier", mThrustMultiplier);
+
     for (int iGyro = 0 ; iGyro != MAX_GYROS ; ++iGyro)
     {
         char txt[128];
@@ -162,6 +165,7 @@ void PropellerEngine::Init(class TiXmlElement* engineElement, class TiXmlHandle&
     mPropPredictionTime = 0.0f;
     mPropPredictionMaxAngSpeed = 3.0f;
     mIsVariable = false;
+    mThrustMultiplier = 1.0f;
 
     mControlExp = 1.0f;
     // Assume a very high control rate, since this would normally be electronic, or only a small load even if using a real throttle.
@@ -515,6 +519,15 @@ void PropellerEngine::UpdatePrePhysics(float deltaTime, const TurbulenceData& tu
 
     propAeroForce *= mNumBlades;
     propAeroTorque *= mNumBlades;
+
+    // Flip net thrust direction if this engine is configured for reverse thrust.
+    // Applied here (not earlier, in the per-blade loop) so it doesn't disturb the
+    // blade-element/stall math itself - everything downstream (prop wash, which
+    // already has its own sign-handling for propAeroForce < 0, and the final
+    // force vector) picks up the reversal consistently. Spin-up torque/inertia
+    // (propAeroTorque, mW) are deliberately left untouched, so the engine still
+    // spools up normally - only the resulting thrust vector is inverted.
+    propAeroForce *= mThrustMultiplier;
 
     // Prop wash. See Selig and Waqas Khan papers.
     // V0 is propeller forward speed in still air (or, airflow speed at infinity)
