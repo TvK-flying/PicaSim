@@ -261,6 +261,118 @@ bool Checkbox(const char* label, bool& value)
     return changed;
 }
 
+// Shared precise-value text-entry state. A single editor is active at a time,
+// identified by the slider's ImGui ID. Opened by clicking the value text next to
+// a slider (see RenderRightAlignedLabelWithEditableValue); closed by pressing
+// Enter (applies), Escape, or clicking away (both cancel).
+static ImGuiID sEditingSliderId = 0;
+static char sEditBuffer[32] = "";
+static bool sEditorJustOpened = false;
+
+//======================================================================================================================
+static ImGuiID ComputeSliderId(const char* label)
+{
+    ImGui::PushID(label);
+    ImGuiID id = ImGui::GetID("##slider");
+    ImGui::PopID();
+    return id;
+}
+
+//======================================================================================================================
+// Opens the precise-entry editor for the given slider, pre-filled with its current value.
+static void OpenSliderEditor(const char* label, float value, const char* format)
+{
+    sEditingSliderId = ComputeSliderId(label);
+    sEditorJustOpened = true;
+    snprintf(sEditBuffer, sizeof(sEditBuffer), format, value);
+}
+
+//======================================================================================================================
+// Renders the precise-entry text box in place of the slider bar. Must only be
+// called when sEditingSliderId already matches this slider (see OpenSliderEditor).
+// Returns true if the value was changed (i.e. Enter was pressed with a new value).
+static bool RenderSliderEditBox(const char* label, float controlWidth, float min, float max, float& value)
+{
+    ImGui::PushID(label);
+    ImGui::SetNextItemWidth(controlWidth);
+
+    bool isFirstFrame = sEditorJustOpened;
+    sEditorJustOpened = false;
+    if (isFirstFrame)
+        ImGui::SetKeyboardFocusHere();
+
+    const ImGuiInputTextFlags editFlags = ImGuiInputTextFlags_EnterReturnsTrue |
+        ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_AutoSelectAll;
+    bool entered = ImGui::InputText("##sliderEdit", sEditBuffer, sizeof(sEditBuffer), editFlags);
+
+    bool changed = false;
+    if (entered)
+    {
+        float typedValue = (float) atof(sEditBuffer);
+        float clampedValue = Clamp(typedValue, min, max);
+        changed = (clampedValue != value);
+        value = clampedValue;
+        sEditingSliderId = 0;
+    }
+    else if (ImGui::IsKeyPressed(ImGuiKey_Escape))
+    {
+        // Cancel without changing the value
+        sEditingSliderId = 0;
+    }
+    else if (!isFirstFrame && !ImGui::IsItemActive())
+    {
+        // The input box lost keyboard focus (e.g. the user clicked elsewhere)
+        // without pressing Enter - cancel. Skipped on the very first frame,
+        // since SetKeyboardFocusHere() only takes effect from this frame on,
+        // and checking IsItemActive() before then would immediately close the
+        // box we just opened (the "flashes and disappears" bug).
+        sEditingSliderId = 0;
+    }
+
+    ImGui::PopID();
+    ImGui::Dummy(ImVec2(0, kRowExtraSpacing));
+    return changed;
+}
+
+//======================================================================================================================
+// Renders "label (value)" right-aligned within labelWidth, with the value portion
+// clickable on its own to open the precise-entry editor. Returns true if the value
+// text was just clicked.
+static bool RenderRightAlignedLabelWithEditableValue(const char* label, const char* valueText, float labelWidth)
+{
+    ImGui::AlignTextToFramePadding();
+
+    char prefix[280];
+    snprintf(prefix, sizeof(prefix), "%s (", label);
+    const char* suffix = ")";
+
+    float prefixWidth = ImGui::CalcTextSize(prefix).x;
+    float valueWidth = ImGui::CalcTextSize(valueText).x;
+    float suffixWidth = ImGui::CalcTextSize(suffix).x;
+
+    float startX = ImGui::GetCursorPosX();
+    float textX = startX + labelWidth - (prefixWidth + valueWidth + suffixWidth) - kLabelRightPadding;
+    if (textX > startX)
+        ImGui::SetCursorPosX(textX);
+
+    ImGui::TextUnformatted(prefix);
+    ImGui::SameLine(0.0f, 0.0f);
+
+    // The value itself is a Selectable so it gets a hover highlight (showing it's
+    // clickable) and reliable click detection, without affecting the rest of the row.
+    ImGui::PushID(valueText);
+    bool clicked = ImGui::Selectable(valueText, false, ImGuiSelectableFlags_None, ImVec2(valueWidth, 0.0f));
+    ImGui::PopID();
+    ImGui::SameLine(0.0f, 0.0f);
+
+    ImGui::TextUnformatted(suffix);
+
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(startX + labelWidth);
+
+    return clicked;
+}
+
 //======================================================================================================================
 // Helper for custom slider rendering - slider takes full controlWidth
 static bool CustomSliderBehavior(const char* label, float& value, float min, float max, float controlWidth)
@@ -331,47 +443,6 @@ static bool CustomSliderBehavior(const char* label, float& value, float min, flo
         grabX = pos.x + grabRadius + t * (sliderWidth - grabRadius * 2.0f);
     }
 
-    // Double-click (or double-tap) opens a precise numeric entry box, so an exact
-    // value can be typed in directly instead of relying on pixel-precision dragging.
-    static ImGuiID sEditingSliderId = 0;
-    static char sEditBuffer[32] = "";
-    ImGuiID thisSliderId = ImGui::GetID("##slider");
-    if (hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-    {
-        sEditingSliderId = thisSliderId;
-        snprintf(sEditBuffer, sizeof(sEditBuffer), "%g", value);
-    }
-
-    if (sEditingSliderId == thisSliderId)
-    {
-        ImGui::SetCursorScreenPos(pos);
-        ImGui::SetNextItemWidth(sliderWidth);
-        if (ImGui::IsWindowAppearing() || sEditBuffer[0] == '\0')
-            ImGui::SetKeyboardFocusHere();
-        const ImGuiInputTextFlags editFlags = ImGuiInputTextFlags_EnterReturnsTrue |
-            ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_AutoSelectAll;
-        bool entered = ImGui::InputText("##sliderEdit", sEditBuffer, sizeof(sEditBuffer), editFlags);
-        bool justOpened = ImGui::IsItemActivated();
-        if (entered)
-        {
-            float typedValue = (float) atof(sEditBuffer);
-            float clampedValue = Clamp(typedValue, min, max);
-            if (clampedValue != value)
-                changed = true;
-            value = clampedValue;
-            sEditingSliderId = 0;
-        }
-        else if (!justOpened && !ImGui::IsItemActive() &&
-                 (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsKeyPressed(ImGuiKey_Escape)))
-        {
-            // Clicked away or pressed Escape - cancel editing, leave the value untouched
-            sEditingSliderId = 0;
-        }
-        ImGui::PopID();
-        ImGui::Dummy(ImVec2(0, kRowExtraSpacing));
-        return changed;
-    }
-
     // Draw unfilled track (full length, rounded)
     drawList->AddRectFilled(trackMin, trackMax, kSliderTrackBgColor, trackRadius);
 
@@ -405,14 +476,16 @@ bool SliderFloat(const char* label, float& value, float min, float max, const ch
     float controlWidth = availWidth * kControlWidthFraction;
     float labelWidth = availWidth - controlWidth;
 
-    // Format label with value: "Label (value)"
-    char labelWithValue[256];
     char valueBuf[64];
     snprintf(valueBuf, sizeof(valueBuf), format, value);
-    snprintf(labelWithValue, sizeof(labelWithValue), "%s (%s)", label, valueBuf);
 
-    // Right-aligned label (includes value)
-    RenderRightAlignedLabel(labelWithValue, labelWidth);
+    ImGuiID sliderId = ComputeSliderId(label);
+    bool valueClicked = RenderRightAlignedLabelWithEditableValue(label, valueBuf, labelWidth);
+    if (valueClicked && sEditingSliderId != sliderId)
+        OpenSliderEditor(label, value, format);
+
+    if (sEditingSliderId == sliderId)
+        return RenderSliderEditBox(label, controlWidth, min, max, value);
 
     return CustomSliderBehavior(label, value, min, max, controlWidth);
 }
@@ -424,14 +497,16 @@ bool SliderFloatPower(const char* label, float& value, float min, float max, flo
     float controlWidth = availWidth * kControlWidthFraction;
     float labelWidth = availWidth - controlWidth;
 
-    // Format label with value: "Label (value)"
-    char labelWithValue[256];
     char valueBuf[64];
     snprintf(valueBuf, sizeof(valueBuf), format, value);
-    snprintf(labelWithValue, sizeof(labelWithValue), "%s (%s)", label, valueBuf);
 
-    // Right-aligned label (includes value)
-    RenderRightAlignedLabel(labelWithValue, labelWidth);
+    ImGuiID sliderId = ComputeSliderId(label);
+    bool valueClicked = RenderRightAlignedLabelWithEditableValue(label, valueBuf, labelWidth);
+    if (valueClicked && sEditingSliderId != sliderId)
+        OpenSliderEditor(label, value, format);
+
+    if (sEditingSliderId == sliderId)
+        return RenderSliderEditBox(label, controlWidth, min, max, value);
 
     // Convert actual value to normalized slider position using inverse power
     // This gives finer control at lower values when power > 1
@@ -464,12 +539,26 @@ bool SliderInt(const char* label, int& value, int min, int max)
     float controlWidth = availWidth * kControlWidthFraction;
     float labelWidth = availWidth - controlWidth;
 
-    // Format label with value: "Label (value)"
-    char labelWithValue[256];
-    snprintf(labelWithValue, sizeof(labelWithValue), "%s (%d)", label, value);
+    char valueBuf[32];
+    snprintf(valueBuf, sizeof(valueBuf), "%d", value);
 
-    // Right-aligned label (includes value)
-    RenderRightAlignedLabel(labelWithValue, labelWidth);
+    ImGuiID sliderId = ComputeSliderId(label);
+    bool valueClicked = RenderRightAlignedLabelWithEditableValue(label, valueBuf, labelWidth);
+    if (valueClicked && sEditingSliderId != sliderId)
+        OpenSliderEditor(label, (float) value, "%.0f");
+
+    if (sEditingSliderId == sliderId)
+    {
+        float floatValue = (float) value;
+        bool changed = RenderSliderEditBox(label, controlWidth, (float) min, (float) max, floatValue);
+        if (changed)
+        {
+            value = std::lround(floatValue);
+            if (value < min) value = min;
+            if (value > max) value = max;
+        }
+        return changed;
+    }
 
     // Convert to float for the slider behavior
     float floatValue = (float)value;
