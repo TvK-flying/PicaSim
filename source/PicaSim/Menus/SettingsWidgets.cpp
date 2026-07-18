@@ -331,6 +331,47 @@ static bool CustomSliderBehavior(const char* label, float& value, float min, flo
         grabX = pos.x + grabRadius + t * (sliderWidth - grabRadius * 2.0f);
     }
 
+    // Double-click (or double-tap) opens a precise numeric entry box, so an exact
+    // value can be typed in directly instead of relying on pixel-precision dragging.
+    static ImGuiID sEditingSliderId = 0;
+    static char sEditBuffer[32] = "";
+    ImGuiID thisSliderId = ImGui::GetID("##slider");
+    if (hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+    {
+        sEditingSliderId = thisSliderId;
+        snprintf(sEditBuffer, sizeof(sEditBuffer), "%g", value);
+    }
+
+    if (sEditingSliderId == thisSliderId)
+    {
+        ImGui::SetCursorScreenPos(pos);
+        ImGui::SetNextItemWidth(sliderWidth);
+        if (ImGui::IsWindowAppearing() || sEditBuffer[0] == '\0')
+            ImGui::SetKeyboardFocusHere();
+        const ImGuiInputTextFlags editFlags = ImGuiInputTextFlags_EnterReturnsTrue |
+            ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_AutoSelectAll;
+        bool entered = ImGui::InputText("##sliderEdit", sEditBuffer, sizeof(sEditBuffer), editFlags);
+        bool justOpened = ImGui::IsItemActivated();
+        if (entered)
+        {
+            float typedValue = (float) atof(sEditBuffer);
+            float clampedValue = Clamp(typedValue, min, max);
+            if (clampedValue != value)
+                changed = true;
+            value = clampedValue;
+            sEditingSliderId = 0;
+        }
+        else if (!justOpened && !ImGui::IsItemActive() &&
+                 (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsKeyPressed(ImGuiKey_Escape)))
+        {
+            // Clicked away or pressed Escape - cancel editing, leave the value untouched
+            sEditingSliderId = 0;
+        }
+        ImGui::PopID();
+        ImGui::Dummy(ImVec2(0, kRowExtraSpacing));
+        return changed;
+    }
+
     // Draw unfilled track (full length, rounded)
     drawList->AddRectFilled(trackMin, trackMax, kSliderTrackBgColor, trackRadius);
 
