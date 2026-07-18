@@ -90,6 +90,13 @@ private:
     float mControlRate;
     int mChannelForMode;
 
+    // Optional per-engine custom 5-point throttle curve (independent of the
+    // controller-level curve in ControllerSettings::ControlSetting). Lets two
+    // engines on the same aircraft (e.g. a twin) have different throttle response
+    // even though they both read the same controller channel.
+    bool mUseThrottleCurve;
+    float mThrottleCurve[NUM_THROTTLE_CURVE_POINTS];
+
     // Calculated
     float mPropSolidity;
 
