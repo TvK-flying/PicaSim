@@ -41,6 +41,11 @@ private:
     float mControlExp;
     float mControlRate;
 
+    // Optional per-engine custom 5-point throttle curve, independent of the
+    // controller-level curve. See PropellerEngine.h for the same mechanism.
+    bool mUseThrottleCurve;
+    float mThrottleCurve[NUM_THROTTLE_CURVE_POINTS];
+
     float mControlPerChannel[Controller::MAX_CHANNELS];
 
     struct SoundSetting
