@@ -513,6 +513,7 @@ void InitStringsEN(const char** txt)
   txt[PS_EXPONENTIAL] = "Exponential";
   txt[PS_SPRING] = "Spring";
   txt[PS_USETHROTTLECURVE] = "Use custom throttle curve";
+  txt[PS_ENABLE4DMODE] = "Enable 4D mode (reverse thrust)";
   txt[PS_THROTTLECURVE0] = "Curve height at 0%";
   txt[PS_THROTTLECURVE25] = "Curve height at 25%";
   txt[PS_THROTTLECURVE50] = "Curve height at 50%";
