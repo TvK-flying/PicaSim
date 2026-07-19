@@ -2568,6 +2568,7 @@ bool ControllerSettings::ControlSetting::WriteToDoc(TiXmlDocument& doc, int i, i
         sprintf(curveAttrName, "mThrottleCurve_%d", k);
         element->SetDoubleAttribute(curveAttrName, mThrottleCurve[k]);
     }
+    WRITE_ATTRIBUTE(mEnable4DMode);
     return true;
 }
 
@@ -2597,6 +2598,7 @@ bool ControllerSettings::ControlSetting::ReadFromDoc(TiXmlDocument& doc, int i, 
         if (element->QueryDoubleAttribute(curveAttrName, &curveValue) == TIXML_SUCCESS)
             mThrottleCurve[k] = (float) curveValue;
     }
+    READ_ATTRIBUTE(mEnable4DMode);
     return true;
 }
 
