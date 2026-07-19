@@ -97,7 +97,7 @@ struct ControllerSettings : public Settings
     struct ControlSetting
     {
         // Note that each control input has a normal range of -1 to +1
-        ControlSetting() : mAutoCentre(true), mClamp(CONTROL_CLAMP_NONE), mScale(1.0f), mExponential(1.0f), mTrim(0.0f), mUseThrottleCurve(false)
+        ControlSetting() : mAutoCentre(true), mClamp(CONTROL_CLAMP_NONE), mScale(1.0f), mExponential(1.0f), mTrim(0.0f), mUseThrottleCurve(false), mEnable4DMode(false)
         {
             // Default curve is a straight line (0%->0%, 25%->25%, ... 100%->100%)
             for (int i = 0 ; i != NUM_THROTTLE_CURVE_POINTS ; ++i)
@@ -122,6 +122,16 @@ struct ControllerSettings : public Settings
         // instead of mExponential to shape this control's response.
         bool mUseThrottleCurve;
         float mThrottleCurve[NUM_THROTTLE_CURVE_POINTS];
+
+        // "4D" mode: reinterprets this control's full -1..1 stick range as
+        // reverse/neutral/forward instead of the usual 0%..100% throttle sweep.
+        // 0% stick -> -1.0 (full reverse), 50% stick -> 0.0 (neutral), 100% stick
+        // -> +1.0 (full forward). Takes priority over mUseThrottleCurve/
+        // mExponential when enabled (see HumanController::EntityUpdate). Note this
+        // only affects the CONTROLLER'S output value; whether that negative value
+        // actually produces reverse thrust depends on the engine physics reading
+        // it (see caveat in HumanController.cpp).
+        bool mEnable4DMode;
     };
 
     struct Mix
