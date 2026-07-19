@@ -154,12 +154,23 @@ void JetEngine::UpdatePrePhysics(float deltaTime, const TurbulenceData& turbulen
         for (unsigned int i = 0 ; i != Controller::MAX_CHANNELS ; ++i)
             control += mControlPerChannel[i] * controller.GetControl((Controller::Channel) i);
 
-        // JetEngine control needs to be remapped, and can never be negative!
-        control = ClampToRange(control, 0.0f, 1.0f);
+        // JetEngine control needs to be remapped. Historically clamped to 0..1 only
+        // ("can never be negative"), but a negative controller value - e.g. from
+        // HumanController's global 4D mode - is now a deliberate request for
+        // reverse thrust. Clamp to the full -1..1 range instead, applying the
+        // curve/exponential to the MAGNITUDE only, tracking sign separately. Unlike
+        // PropellerEngine, JetEngine's thrust is directly proportional to mControl
+        // (see "force = mMaxForce * mControl * effectiveness" below), so simply
+        // letting mControl go negative is sufficient - no separate sign-flip step
+        // is needed further down.
+        control = ClampToRange(control, -1.0f, 1.0f);
+        float controlMagnitude = fabsf(control);
+        float controlSign = (control >= 0.0f) ? 1.0f : -1.0f;
         if (mUseThrottleCurve)
-            control = EvaluateFivePointCurve(mThrottleCurve, control);
+            controlMagnitude = EvaluateFivePointCurve(mThrottleCurve, controlMagnitude);
         else
-            control = powf(control, mControlExp);
+            controlMagnitude = powf(controlMagnitude, mControlExp);
+        control = controlSign * controlMagnitude;
 
         if (mAeroplane->GetCrashed(Aeroplane::CRASHFLAG_AIRFRAME))
             control = 0.0f;
