@@ -2078,6 +2078,7 @@ void SettingsMenu::RenderControllerTab()
                     {
                         SettingsWidgets::SliderFloat(TXT(PS_EXPONENTIAL), setting.mExponential, 0.5f, 3.0f);
                     }
+                    SettingsWidgets::Checkbox(TXT(PS_ENABLE4DMODE), setting.mEnable4DMode);
                     SettingsWidgets::SliderFloat(TXT(PS_SCALE), setting.mScale, -2.0f, 2.0f);
                     SettingsWidgets::SliderFloat(TXT(PS_TRIM), setting.mTrim, -1.0f, 1.0f);
                     SettingsWidgets::Checkbox(TXT(PS_SPRING), setting.mAutoCentre);
