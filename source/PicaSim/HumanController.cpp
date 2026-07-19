@@ -661,13 +661,39 @@ void HumanController::EntityUpdate(float deltaTime, int entityLevel)
 
     for (size_t i = 0 ; i != ControllerSettings::CONTROLLER_NUM_CONTROLS ; ++i)
     {
-        if (controlSettings[i].mClamp == ControllerSettings::CONTROL_CLAMP_POSITIVE)
-            mProcessedInputControls[i] = ClampToRange(mProcessedInputControls[i], 0.0f, 1.0f);
-        else if (controlSettings[i].mClamp == ControllerSettings::CONTROL_CLAMP_NEGATIVE)
-            mProcessedInputControls[i] = ClampToRange(mProcessedInputControls[i], -1.0f, 0.0f);
+        // 4D mode needs the full -1..1 range (reverse/neutral/forward), so it
+        // deliberately skips the positive/negative clamp below - a clamp and 4D
+        // mode enabled together would be contradictory, and 4D mode wins.
+        if (!controlSettings[i].mEnable4DMode)
+        {
+            if (controlSettings[i].mClamp == ControllerSettings::CONTROL_CLAMP_POSITIVE)
+                mProcessedInputControls[i] = ClampToRange(mProcessedInputControls[i], 0.0f, 1.0f);
+            else if (controlSettings[i].mClamp == ControllerSettings::CONTROL_CLAMP_NEGATIVE)
+                mProcessedInputControls[i] = ClampToRange(mProcessedInputControls[i], -1.0f, 0.0f);
+        }
 
         // Process them
-        if (controlSettings[i].mUseThrottleCurve)
+        if (controlSettings[i].mEnable4DMode)
+        {
+            // "4D" mode: reinterpret the full -1..1 stick range as reverse/neutral/
+            // forward rather than the usual 0%-100% throttle sweep. 0% stick (-1
+            // raw) -> -1.0 (full reverse), 50% stick (0 raw) -> 0.0 (neutral),
+            // 100% stick (+1 raw) -> +1.0 (full forward). Since the raw input is
+            // already -1..1 across the stick's full travel, this mapping is just
+            // the identity - the real effect of this toggle is that it takes
+            // priority over mUseThrottleCurve/mExponential below, so the control's
+            // sign is preserved instead of being curved/exponentiated or clamped
+            // away. NOTE: this only changes the CONTROLLER's output value. Whether
+            // a negative value here actually produces reverse thrust depends on
+            // the engine physics reading it - PropellerEngine.cpp and
+            // JetEngine.cpp currently do "control = ClampToRange(control, 0.0f,
+            // 1.0f)" before applying throttle, which will silently clamp any
+            // negative value here to zero. Without an engine-side change too,
+            // the reverse half of the stick will act as idle, not fly backward.
+            float normalisedPosition = (mProcessedInputControls[i] + 1.0f) * 0.5f;   // 0..1
+            mProcessedInputControls[i] = (normalisedPosition - 0.5f) * 2.0f;         // -1..1: 0%->-1, 50%->0, 100%->+1
+        }
+        else if (controlSettings[i].mUseThrottleCurve)
         {
             // Throttle-type controls span their whole travel across the full -1..1
             // input range (-1 = 0% throttle, +1 = 100% throttle) - unlike a centred
