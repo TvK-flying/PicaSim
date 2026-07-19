@@ -77,9 +77,6 @@ void PropellerEngine::ReadFromXML(TiXmlElement* engineElement, EngineData& engin
     readFromXML(engineElement, "throttleCurve75", mThrottleCurve[3]);
     readFromXML(engineElement, "throttleCurve100", mThrottleCurve[4]);
 
-    // Flips this engine's net thrust direction (1.0 = normal, -1.0 = reverse).
-    readFromXML(engineElement, "thrustMultiplier", mThrustMultiplier);
-
     for (int iGyro = 0 ; iGyro != MAX_GYROS ; ++iGyro)
     {
         char txt[128];
@@ -165,7 +162,6 @@ void PropellerEngine::Init(class TiXmlElement* engineElement, class TiXmlHandle&
     mPropPredictionTime = 0.0f;
     mPropPredictionMaxAngSpeed = 3.0f;
     mIsVariable = false;
-    mThrustMultiplier = 1.0f;
 
     mControlExp = 1.0f;
     // Assume a very high control rate, since this would normally be electronic, or only a small load even if using a real throttle.
@@ -379,12 +375,20 @@ void PropellerEngine::UpdatePrePhysics(float deltaTime, const TurbulenceData& tu
         {
             pitchAngle = yawAngle = 0.0f;
 
-            // Engine control needs to be remapped, and can never be negative!
-            control = ClampToRange(control, 0.0f, 1.0f);
+            // Engine control needs to be remapped. Historically this was clamped to
+            // 0..1 only ("can never be negative"), but a negative controller value -
+            // e.g. from HumanController's global 4D mode - is now a deliberate
+            // request for reverse thrust. Clamp to the full -1..1 range instead, and
+            // apply the curve/exponential to the MAGNITUDE only (so curve shape is
+            // identical in both directions), tracking the sign separately.
+            control = ClampToRange(control, -1.0f, 1.0f);
+            float controlMagnitude = fabsf(control);
+            float controlSign = (control >= 0.0f) ? 1.0f : -1.0f;
             if (mUseThrottleCurve)
-                control = EvaluateFivePointCurve(mThrottleCurve, control);
+                controlMagnitude = EvaluateFivePointCurve(mThrottleCurve, controlMagnitude);
             else
-                control = powf(control, mControlExp);
+                controlMagnitude = powf(controlMagnitude, mControlExp);
+            control = controlSign * controlMagnitude;
 
             float maxDeltaControl = mControlRate * deltaTime;
             if (control > mControl)
@@ -520,14 +524,15 @@ void PropellerEngine::UpdatePrePhysics(float deltaTime, const TurbulenceData& tu
     propAeroForce *= mNumBlades;
     propAeroTorque *= mNumBlades;
 
-    // Flip net thrust direction if this engine is configured for reverse thrust.
-    // Applied here (not earlier, in the per-blade loop) so it doesn't disturb the
-    // blade-element/stall math itself - everything downstream (prop wash, which
-    // already has its own sign-handling for propAeroForce < 0, and the final
-    // force vector) picks up the reversal consistently. Spin-up torque/inertia
-    // (propAeroTorque, mW) are deliberately left untouched, so the engine still
-    // spools up normally - only the resulting thrust vector is inverted.
-    propAeroForce *= mThrustMultiplier;
+    // Global reverse-thrust support: if the controller commanded a negative value
+    // for this control (e.g. HumanController's 4D mode driving the stick's bottom
+    // half negative), flip the net thrust direction. The blade-element aerodynamics
+    // above are driven by mW, which stays non-negative (see throttleMagnitude
+    // below), so they're computed exactly as before; only the resulting force
+    // vector's sign is flipped here - the prop doesn't spin backward, it just
+    // produces thrust the other way, like a reversible-pitch prop or reversed ESC.
+    if (throttleControl < 0.0f)
+        propAeroForce = -propAeroForce;
 
     // Prop wash. See Selig and Waqas Khan papers.
     // V0 is propeller forward speed in still air (or, airflow speed at infinity)
@@ -564,12 +569,17 @@ void PropellerEngine::UpdatePrePhysics(float deltaTime, const TurbulenceData& tu
         mLastWashAngVel = Vector3(0,0,0);
     }
 
-    // Update the propeller speed
+    // Update the propeller speed. Uses the MAGNITUDE of throttleControl - the prop
+    // keeps spinning the same physical direction regardless of forward/reverse
+    // thrust (see the sign flip on propAeroForce above); only mode of thrust
+    // production changes, not spin direction. This keeps all the existing
+    // spin-up/friction/inertia dynamics below completely unaffected by 4D mode.
+    const float throttleMagnitude = fabsf(throttleControl);
     float engineTorque = 0.0f;
     const float speedFrac = mW / mMaxW;
-    if (speedFrac < throttleControl)
+    if (speedFrac < throttleMagnitude)
     {
-        float delta = ClampToRange(throttleControl - speedFrac, -1.0f, 1.0f);
+        float delta = ClampToRange(throttleMagnitude - speedFrac, -1.0f, 1.0f);
         float gain = 5.0f;
         engineTorque = mMaxTorque * delta * gain;
     }
@@ -585,7 +595,7 @@ void PropellerEngine::UpdatePrePhysics(float deltaTime, const TurbulenceData& tu
         // Avoid overshooting
         if (engineTorque > 0.0f)
         {
-            float requiredAngVelIncrease = throttleControl * mMaxW - mW;
+            float requiredAngVelIncrease = throttleMagnitude * mMaxW - mW;
             float maxEngineTorque = requiredAngVelIncrease * mInertia / deltaTime;
             if (engineTorque > maxEngineTorque)
                 engineTorque = maxEngineTorque;
