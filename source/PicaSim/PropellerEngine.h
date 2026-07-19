@@ -86,14 +86,6 @@ private:
     float mPropPredictionMaxAngSpeed;
     bool  mIsVariable;
 
-    // Flips the net thrust force this engine produces (+1.0 normal, -1.0 reverse),
-    // without touching the blade-element/stall aerodynamics, spin-up torque, or wash
-    // rotation - those all keep working exactly as normal, only the resulting linear
-    // thrust vector is inverted. Useful for e.g. a "4D" reverse-thrust setup, where a
-    // negative pitch value alone isn't reliable (the CL0 camber offset in the blade
-    // model means negating pitch doesn't cleanly mirror the force).
-    float mThrustMultiplier;
-
     float mControlExp;
     float mControlRate;
     int mChannelForMode;
