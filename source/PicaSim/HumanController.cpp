@@ -683,13 +683,10 @@ void HumanController::EntityUpdate(float deltaTime, int entityLevel)
             // the identity - the real effect of this toggle is that it takes
             // priority over mUseThrottleCurve/mExponential below, so the control's
             // sign is preserved instead of being curved/exponentiated or clamped
-            // away. NOTE: this only changes the CONTROLLER's output value. Whether
-            // a negative value here actually produces reverse thrust depends on
-            // the engine physics reading it - PropellerEngine.cpp and
-            // JetEngine.cpp currently do "control = ClampToRange(control, 0.0f,
-            // 1.0f)" before applying throttle, which will silently clamp any
-            // negative value here to zero. Without an engine-side change too,
-            // the reverse half of the stick will act as idle, not fly backward.
+            // away, and (below) that mScale/mTrim are skipped so nothing shifts
+            // this mapping afterward. PropellerEngine.cpp and JetEngine.cpp clamp
+            // to the full -1..1 range and apply curve/exponential to the magnitude
+            // only, so a negative value here correctly produces reverse thrust.
             float normalisedPosition = (mProcessedInputControls[i] + 1.0f) * 0.5f;   // 0..1
             mProcessedInputControls[i] = (normalisedPosition - 0.5f) * 2.0f;         // -1..1: 0%->-1, 50%->0, 100%->+1
         }
@@ -713,8 +710,17 @@ void HumanController::EntityUpdate(float deltaTime, int entityLevel)
             mProcessedInputControls[i] = powf(mProcessedInputControls[i], controlSettings[i].mExponential);
         else
             mProcessedInputControls[i] = -powf(-mProcessedInputControls[i], controlSettings[i].mExponential);
-        mProcessedInputControls[i] *= controlSettings[i].mScale;
-        mProcessedInputControls[i] += controlSettings[i].mTrim;
+        // 4D mode already produces a complete, final -1..1 reverse/neutral/forward
+        // mapping above. mScale/mTrim are tuned for the old one-sided throttle
+        // convention (e.g. mScale=2, mTrim=-1 on the Speed Stick) and were never
+        // designed to sit on top of that mapping - applying them here shifts the
+        // whole range (e.g. center stick would read -1.0 "full reverse" instead of
+        // 0.0 "neutral"), so skip them entirely when 4D mode is enabled.
+        if (!controlSettings[i].mEnable4DMode)
+        {
+            mProcessedInputControls[i] *= controlSettings[i].mScale;
+            mProcessedInputControls[i] += controlSettings[i].mTrim;
+        }
     }
 
     for (size_t i = 0 ; i != MAX_CHANNELS ; ++i)
