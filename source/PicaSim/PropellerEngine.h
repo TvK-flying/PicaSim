@@ -88,7 +88,15 @@ private:
 
     float mControlExp;
     float mControlRate;
+    float mControlRateReverse;
     int mChannelForMode;
+
+    // Scales the net thrust force when running in reverse (negative controller
+    // value, e.g. from HumanController's 4D mode). Real reversible-pitch/reversed-
+    // ESC setups are typically less efficient in reverse than forward, so this
+    // defaults to 1.0 (symmetric) but can be set below 1.0 to make backward flight
+    // weaker/slower than forward. Only affects propAeroForce, not prop spin speed.
+    float mReverseThrustScale;
 
     // Optional per-engine custom 5-point throttle curve (independent of the
     // controller-level curve in ControllerSettings::ControlSetting). Lets two
