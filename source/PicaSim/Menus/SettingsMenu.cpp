@@ -1906,6 +1906,11 @@ void SettingsMenu::RenderControllerTab()
     clampDescs[ControllerSettings::CONTROL_CLAMP_POSITIVE] = TXT(PS_POSITIVE);
     clampDescs[ControllerSettings::CONTROL_CLAMP_NEGATIVE] = TXT(PS_NEGATIVE);
 
+    static const char* vectorModeDescs[ControllerSettings::VECTOR_MODE_MAX];
+    vectorModeDescs[ControllerSettings::VECTOR_MODE_NONE] = TXT(PS_VECTORMODE_NONE);
+    vectorModeDescs[ControllerSettings::VECTOR_MODE_SINGLE] = TXT(PS_VECTORMODE_SINGLE);
+    vectorModeDescs[ControllerSettings::VECTOR_MODE_TWOAXIS] = TXT(PS_VECTORMODE_TWOAXIS);
+
     // General settings section
     SettingsWidgets::SectionHeader(TXT(PS_GENERALSETTINGS));
     SettingsWidgets::BeginSettingsBlock();
@@ -2079,6 +2084,12 @@ void SettingsMenu::RenderControllerTab()
                         SettingsWidgets::SliderFloat(TXT(PS_EXPONENTIAL), setting.mExponential, 0.5f, 3.0f);
                     }
                     SettingsWidgets::Checkbox(TXT(PS_ENABLE4DMODE), setting.mEnable4DMode);
+                    if (setting.mEnable4DMode)
+                    {
+                        int vectorMode = (int)setting.mVectorMode;
+                        if (SettingsWidgets::Combo(TXT(PS_VECTORMODE), vectorMode, vectorModeDescs, ControllerSettings::VECTOR_MODE_MAX))
+                            setting.mVectorMode = (ControllerSettings::VectorMode)vectorMode;
+                    }
                     SettingsWidgets::SliderFloat(TXT(PS_SCALE), setting.mScale, -2.0f, 2.0f);
                     SettingsWidgets::SliderFloat(TXT(PS_TRIM), setting.mTrim, -1.0f, 1.0f);
                     SettingsWidgets::Checkbox(TXT(PS_SPRING), setting.mAutoCentre);
