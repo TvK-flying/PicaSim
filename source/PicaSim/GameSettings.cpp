@@ -2569,6 +2569,7 @@ bool ControllerSettings::ControlSetting::WriteToDoc(TiXmlDocument& doc, int i, i
         element->SetDoubleAttribute(curveAttrName, mThrottleCurve[k]);
     }
     WRITE_ATTRIBUTE(mEnable4DMode);
+    WRITE_ATTRIBUTE(mVectorMode);
     return true;
 }
 
@@ -2599,6 +2600,7 @@ bool ControllerSettings::ControlSetting::ReadFromDoc(TiXmlDocument& doc, int i, 
             mThrottleCurve[k] = (float) curveValue;
     }
     READ_ATTRIBUTE(mEnable4DMode);
+    READ_ENUM_ATTRIBUTE(mVectorMode);
     return true;
 }
 
