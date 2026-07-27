@@ -22,7 +22,7 @@ Yak 54 - 4 channel indoor plane
       aerofoil="SystemData/Aerofoils/Symmetric/Flat"
       numPieces="2"
       numSections="1"
-      mass="0.015"
+      mass="0.013"
 
       positionX="-0.06"
       positionY="0.0"
@@ -43,7 +43,7 @@ Yak 54 - 4 channel indoor plane
       aerofoil="SystemData/Aerofoils/Symmetric/Flat"
       numPieces="2"
       numSections="1"
-      mass="0.01"
+      mass="0.0087"
 
       positionX="-0.0"
       positionY="-0.05"
@@ -62,7 +62,7 @@ Yak 54 - 4 channel indoor plane
       name="Left1"
       aerofoil="SystemData/Aeroplanes/Yak54/Wing"
       numSections="3"
-      mass="0.025"
+      mass="0.022"
 
       positionX="0.01"
       positionY="0.05"
@@ -77,13 +77,13 @@ Yak 54 - 4 channel indoor plane
       CDPerDegree="0.01"
       CMPerDegree="-0.013"
       flapFraction="0.55"
-      degreesPerControl="55"
+      degreesPerControl="70"
       slopDegreesPerNewton="5"
       
       washFromEngineName="Engine"
       washFromEngineFraction="0.7"
 
-      controlRate="20"
+      controlRate="35"
       controlPerChannel0="1"
     />
 
@@ -91,13 +91,13 @@ Yak 54 - 4 channel indoor plane
       name="Left2"
       aerofoil="SystemData/Aeroplanes/Yak54/Wing"
       numSections="3"
-      mass="0.015"
+      mass="0.013"
 
       positionX="0.02"
       positionY="0.21"
       positionZ="0.0"
       extentsX="0.17"
-      extentsY="0.2"
+      extentsY="0.215"
       extentsZ="0.01"
       wingAspectRatio="5.0"
       groundEffect="1"
@@ -106,12 +106,12 @@ Yak 54 - 4 channel indoor plane
       CDPerDegree="0.01"
       CMPerDegree="-0.013"
       flapFraction="0.65"
-      degreesPerControl="55"
+      degreesPerControl="70"
       
       washFromEngineName="Engine"
       washFromEngineFraction="0.0"
 
-      controlRate="20"
+      controlRate="35"
       controlPerChannel0="1"
     />
 
@@ -132,7 +132,7 @@ Yak 54 - 4 channel indoor plane
       name="Tail"
       aerofoil="SystemData/Aerofoils/Symmetric/Flat"
       numSections="2"
-      mass="0.009"
+      mass="0.008"
 
       positionX="-0.45"
       positionY="-0.19"
@@ -152,14 +152,14 @@ Yak 54 - 4 channel indoor plane
       CLPerDegree="0.0"
       CDPerDegree="0.002"
       CMPerDegree="0"
-      flapFraction="0.9"
-      degreesPerControl="55"
+      flapFraction="1.0"
+      degreesPerControl="65"
       slopDegreesPerNewton="7"
       
       washFromEngineName="Engine"
       washFromEngineFraction="0.5"
       
-      controlRate="20"
+      controlRate="35"
       controlPerChannel1="1"
     />
 
@@ -167,7 +167,7 @@ Yak 54 - 4 channel indoor plane
       name="Fin"
       aerofoil="SystemData/Aerofoils/Symmetric/Flat"
       numSections="2"
-      mass="0.008"
+      mass="0.007"
 
       positionX="-0.48"
       positionY="0.0"
@@ -182,13 +182,13 @@ Yak 54 - 4 channel indoor plane
       CDPerDegree="0.002"
       CMPerDegree="0"
       flapFraction="1.0"
-      degreesPerControl="45"
+      degreesPerControl="55"
       slopDegreesPerNewton="7"
       
       washFromEngineName="Engine"
       washFromEngineFraction="0.7"
 
-      controlRate="20"
+      controlRate="30"
       controlPerChannel2="-1"
       collide="true"
     />
@@ -209,8 +209,8 @@ Yak 54 - 4 channel indoor plane
       CDInducedMultiplier="1.0"
       stallAngle="20"
       inertia = "0.000015"
-      maxTorque = "0.01"
-      maxRPM = "17000.0"
+      maxTorque = "0.028"
+      maxRPM = "19000.0"
       minRPM = "0.0"
       frictionTorque ="0.006"
       aeroTorqueScale="1.0"
@@ -221,8 +221,10 @@ Yak 54 - 4 channel indoor plane
       isVariable="0"
 
       controlExp="1.2"
-      controlRate="20"
+      controlRate="70"
+      controlRateReverse="18"
       controlPerChannel3="1"
+      reverseThrustScale="0.6"
 
       audioFile="SystemData/Audio/NewMotor44100Mono.raw"
       audioSampleRate="44100"
@@ -240,7 +242,7 @@ Yak 54 - 4 channel indoor plane
 
     <Fuselage
       name="Fuselage"
-      mass="0.014"
+      mass="0.012"
       positionX="0.14"
       positionY="0.0"
       positionZ="0.0"
@@ -330,7 +332,7 @@ Yak 54 - 4 channel indoor plane
     <Shape
       type="box"
       name="Nose weight"
-      mass="0.05"
+      mass="0.044"
       positionX="0.23"
       positionY="0.0"
       positionZ="-0.01"
