@@ -84,6 +84,8 @@ bool Wing::ReadFromXML(class TiXmlElement* wingElement, AerofoilData& aerofoilDa
     readFromXML(wingElement, "CDPerDegree", mCDPerDegree);
     readFromXML(wingElement, "CMPerDegree", mCMPerDegree);
     readFromXML(wingElement, "degreesPerControl", mDegreesPerControl);
+    mBackwardFlightControlScale = 1.0f;
+    readFromXML(wingElement, "backwardFlightControlScale", mBackwardFlightControlScale);
     readFromXML(wingElement, "flapFraction", mFlapFraction);
     readFromXML(wingElement, "slopDegreesPerNewton", mSlopDegreesPerNewton);
 
@@ -320,7 +322,15 @@ void Wing::UpdatePrePhysics(float deltaTime, const TurbulenceData& turbulenceDat
         mControl = ClampToRange(mControl, -mControlClamp, mControlClamp);
     }
 
-    mFlapAngle = mControl * mDegreesPerControl;
+    float effectiveDegreesPerControl = mDegreesPerControl;
+    if (mBackwardFlightControlScale != 1.0f)
+    {
+        Vector3 forwardDir = mAeroplane->GetTransform().RowX();
+        float forwardSpeed = mAeroplane->GetVelocity().Dot(forwardDir);
+        if (forwardSpeed < 0.0f)
+            effectiveDegreesPerControl *= mBackwardFlightControlScale;
+    }
+    mFlapAngle = mControl * effectiveDegreesPerControl;
 
     Vector3 upDir = mTMLocal.RowZ();
     upDir = mAeroplane->GetTransform().RotateVec(upDir);
