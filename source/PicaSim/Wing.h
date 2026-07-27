@@ -78,8 +78,15 @@ private:
     /// Optional scale (0..1) applied to this surface's effective degreesPerControl
     /// when the aircraft's actual velocity is pointing backward relative to its
     /// nose (not just when the engine is in reverse - a 4D plane can have reverse
-    /// thrust engaged while still moving forward). 1.0 = no change.
+    /// thrust engaged while still moving forward). 1.0 = no change. Ignored if
+    /// mVectorAxis is set (below) - that takes priority.
     float mBackwardFlightControlScale;
+
+    /// If set to "pitch" or "yaw", this surface's backward-flight scale is driven
+    /// live by the controller's 4D thrust-vectoring setting (see
+    /// GameSettings::ControllerSettings::VectorMode) instead of the fixed
+    /// mBackwardFlightControlScale above. Empty (default) = not vectored.
+    std::string mVectorAxis;
 };
 
 #endif
