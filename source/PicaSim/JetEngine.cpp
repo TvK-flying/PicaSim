@@ -49,6 +49,10 @@ void JetEngine::Init(class TiXmlElement* engineElement, class TiXmlHandle& aerod
     readFromXML(engineElement, "maxSpeed", mMaxSpeed);
     readFromXML(engineElement, "controlExp", mControlExp);
     readFromXML(engineElement, "controlRate", mControlRate);
+    // Optional slower ramp specifically for transitioning into reverse thrust.
+    // Falls back to controlRate when not specified.
+    mControlRateReverse = mControlRate;
+    readFromXML(engineElement, "controlRateReverse", mControlRateReverse);
 
     // Optional per-engine throttle curve - see PropellerEngine::ReadFromXML for the
     // same mechanism (used e.g. so a twin-jet aircraft can give each engine its own
@@ -177,7 +181,8 @@ void JetEngine::UpdatePrePhysics(float deltaTime, const TurbulenceData& turbulen
 
         // Represent finite servo speed - allow infinite speed when paused
         float dt = deltaTime > 0.0f ? deltaTime : 1000.0f;
-        float maxDeltaControl = mControlRate * dt;
+        float rate = (control >= 0.0f) ? mControlRate : mControlRateReverse;
+        float maxDeltaControl = rate * dt;
         if (control > mControl)
             mControl += Minimum(control - mControl, maxDeltaControl);
         else 
