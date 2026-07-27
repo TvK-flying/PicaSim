@@ -161,6 +161,7 @@ Yak 54 - 4 channel indoor plane
       
       controlRate="35"
       controlPerChannel1="1"
+      backwardFlightControlScale="0.5"
     />
 
     <Wing
@@ -221,7 +222,7 @@ Yak 54 - 4 channel indoor plane
       isVariable="0"
 
       controlExp="1.2"
-      controlRate="40"
+      controlRate="30"
       controlRateReverse="40"
       controlPerChannel3="1"
       reverseThrustScale="0.6"
