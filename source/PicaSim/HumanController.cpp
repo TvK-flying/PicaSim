@@ -1003,3 +1003,17 @@ float HumanController::GetInputControl(int control) const
     IwAssert(ROWLHOUSE, control < ControllerSettings::CONTROLLER_NUM_CONTROLS);
     return mInputControls[control];
 }
+
+//======================================================================================================================
+int HumanController::GetVectorMode() const
+{
+    // Vectoring is only meaningful once 4D mode is actually enabled - it's set
+    // on the Speed Stick control alongside mEnable4DMode.
+    const ControllerSettings::ControlSetting* controlSettings =
+        mGameSettings.mControllerSettings.GetControlSettings();
+    const ControllerSettings::ControlSetting& speedSetting =
+        controlSettings[ControllerSettings::CONTROLLER_STICK_SPEED];
+    if (!speedSetting.mEnable4DMode)
+        return ControllerSettings::VECTOR_MODE_NONE;
+    return speedSetting.mVectorMode;
+}
