@@ -25,6 +25,8 @@ public:
 
     float GetElevatorTrim() const OVERRIDE {return mElevatorTrim;}
 
+    int GetVectorMode() const OVERRIDE;
+
     void RenderOverlayUpdate(int renderLevel, DisplayConfig& displayConfig) OVERRIDE;
 
 private:
