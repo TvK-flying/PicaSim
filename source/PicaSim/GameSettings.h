@@ -94,10 +94,21 @@ struct ControllerSettings : public Settings
         CONTROL_CLAMP_MAX
     };
 
+    // 4D thrust vectoring setup - controls how much pitch/yaw authority is kept
+    // while flying backward. Mutually exclusive; only meaningful when
+    // mEnable4DMode is set on this control.
+    enum VectorMode
+    {
+        VECTOR_MODE_NONE,      // Neither axis vectored: pitch and yaw both 50% while flying backward
+        VECTOR_MODE_SINGLE,    // Single axis (yaw) vectored: pitch 50%, yaw 100% while flying backward
+        VECTOR_MODE_TWOAXIS,   // Both axes vectored: pitch and yaw both 100% while flying backward
+        VECTOR_MODE_MAX
+    };
+
     struct ControlSetting
     {
         // Note that each control input has a normal range of -1 to +1
-        ControlSetting() : mAutoCentre(true), mClamp(CONTROL_CLAMP_NONE), mScale(1.0f), mExponential(1.0f), mTrim(0.0f), mUseThrottleCurve(false), mEnable4DMode(false)
+        ControlSetting() : mAutoCentre(true), mClamp(CONTROL_CLAMP_NONE), mScale(1.0f), mExponential(1.0f), mTrim(0.0f), mUseThrottleCurve(false), mEnable4DMode(false), mVectorMode(VECTOR_MODE_NONE)
         {
             // Default curve is a straight line (0%->0%, 25%->25%, ... 100%->100%)
             for (int i = 0 ; i != NUM_THROTTLE_CURVE_POINTS ; ++i)
@@ -132,6 +143,10 @@ struct ControllerSettings : public Settings
         // actually produces reverse thrust depends on the engine physics reading
         // it (see caveat in HumanController.cpp).
         bool mEnable4DMode;
+
+        // Which axes stay "vectored" (keep authority) while flying backward in 4D
+        // mode - see VectorMode above. Only meaningful when mEnable4DMode is true.
+        VectorMode mVectorMode;
     };
 
     struct Mix
