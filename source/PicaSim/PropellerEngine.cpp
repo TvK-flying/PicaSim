@@ -65,7 +65,13 @@ void PropellerEngine::ReadFromXML(TiXmlElement* engineElement, EngineData& engin
 
     readFromXML(engineElement, "controlExp", mControlExp);
     readFromXML(engineElement, "controlRate", mControlRate);
+    // Optional slower ramp specifically for transitioning into reverse thrust
+    // (real reversible ESCs are often deliberately softer going into reverse than
+    // coming out of it). Falls back to controlRate when not specified.
+    mControlRateReverse = mControlRate;
+    readFromXML(engineElement, "controlRateReverse", mControlRateReverse);
     readFromXML(engineElement, "channelForMode", mChannelForMode);
+    readFromXML(engineElement, "reverseThrustScale", mReverseThrustScale);
 
     // Optional per-engine throttle curve - lets a twin (or multi) engine aircraft
     // give each engine its own independent throttle response. Falls back to
@@ -167,6 +173,7 @@ void PropellerEngine::Init(class TiXmlElement* engineElement, class TiXmlHandle&
     // Assume a very high control rate, since this would normally be electronic, or only a small load even if using a real throttle.
     mControlRate = 1.0f / 0.05f;
     mChannelForMode = -1;
+    mReverseThrustScale = 1.0f;
 
     mUseThrottleCurve = false;
     for (int iCurve = 0 ; iCurve != NUM_THROTTLE_CURVE_POINTS ; ++iCurve)
@@ -390,7 +397,12 @@ void PropellerEngine::UpdatePrePhysics(float deltaTime, const TurbulenceData& tu
                 controlMagnitude = powf(controlMagnitude, mControlExp);
             control = controlSign * controlMagnitude;
 
-            float maxDeltaControl = mControlRate * deltaTime;
+            // Use the (typically slower) reverse rate whenever the commanded value
+            // is itself negative - i.e. transitioning into or staying within
+            // reverse thrust. Anything commanding forward/neutral uses the normal
+            // (typically faster) rate, including recovering out of reverse.
+            float rate = (control >= 0.0f) ? mControlRate : mControlRateReverse;
+            float maxDeltaControl = rate * deltaTime;
             if (control > mControl)
                 mControl += Minimum(control - mControl, maxDeltaControl);
             else
@@ -532,7 +544,7 @@ void PropellerEngine::UpdatePrePhysics(float deltaTime, const TurbulenceData& tu
     // vector's sign is flipped here - the prop doesn't spin backward, it just
     // produces thrust the other way, like a reversible-pitch prop or reversed ESC.
     if (throttleControl < 0.0f)
-        propAeroForce = -propAeroForce;
+        propAeroForce = -propAeroForce * mReverseThrustScale;
 
     // Prop wash. See Selig and Waqas Khan papers.
     // V0 is propeller forward speed in still air (or, airflow speed at infinity)
