@@ -74,6 +74,12 @@ private:
 
     float mControlRate;
     float mControlClamp;
+
+    /// Optional scale (0..1) applied to this surface's effective degreesPerControl
+    /// when the aircraft's actual velocity is pointing backward relative to its
+    /// nose (not just when the engine is in reverse - a 4D plane can have reverse
+    /// thrust engaged while still moving forward). 1.0 = no change.
+    float mBackwardFlightControlScale;
 };
 
 #endif
