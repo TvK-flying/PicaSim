@@ -1,42 +1,42 @@
-#ifndef AI_CONTROLLER_H
-#define AI_CONTROLLER_H
+#ifndef CONTROLLER_H
+#define CONTROLLER_H
 
-#include "Controller.h"
-#include "Aeroplane.h"
-
-#include "Framework.h"
-
-#include <vector>
-#include <memory>
-
-//======================================================================================================================
-class AIController : public Controller, public Entity
+class Controller
 {
 public:
-    AIController() : mAeroplane(nullptr), mAIControllerIndex(0) {}
-    virtual ~AIController() {}  // Virtual destructor ensures proper cleanup of derived classes
-
-    virtual bool Init(LoadingScreenHelper* loadingScreen) = 0;
-    virtual void Terminate() = 0;
-    virtual void Reset() = 0;
-
-    virtual void Relaunched() = 0;
-
-    const Aeroplane* GetAeroplane() const {return mAeroplane.get();}
-    Aeroplane* GetAeroplane() {return mAeroplane.get();}
-
-    float GetControl(Channel channel) const
+    enum Channel
     {
-        IwAssert(ROWLHOUSE, channel < MAX_CHANNELS);
-        return mOutputControls[channel];
-    }
+        CHANNEL_AILERONS  = 0,
+        CHANNEL_ELEVATOR  = 1,
+        CHANNEL_RUDDER    = 2,
+        CHANNEL_THROTTLE  = 3,
+        CHANNEL_LOOKYAW   = 4,
+        CHANNEL_LOOKPITCH = 5,
+        CHANNEL_AUX1      = 6,
+        CHANNEL_SMOKE1    = 7,
+        CHANNEL_SMOKE2    = 8,
+        CHANNEL_HOOK      = 9,
+        MAX_CHANNELS      = 10
+    };
 
-protected:
-    float mOutputControls[MAX_CHANNELS];
-    std::unique_ptr<Aeroplane> mAeroplane;
-    size_t mAIControllerIndex;
+    virtual ~Controller() {}
+
+    /// Controls range from -1 to +1
+    virtual float GetControl(Channel channel) const = 0;
+
+    /// Elevator trim control from -1 to 1
+    virtual float GetElevatorTrim() const {return 0.0f;}
+
+    // control is ControllerSettings::ControllerControls
+    virtual void SetInputControl(int control, float value) {}
+    virtual float GetInputControl(int control) const {return 0.0f;}
+
+    /// 4D thrust-vectoring mode (values match
+    /// GameSettings::ControllerSettings::VectorMode). Only meaningful when this
+    /// controller has 4D mode enabled; returns VECTOR_MODE_NONE (0) otherwise,
+    /// including for controllers (AI, replay, etc.) that don't support 4D at all.
+    virtual int GetVectorMode() const {return 0;}
+
 };
-
-typedef std::vector<AIController*> AIControllers;
 
 #endif
