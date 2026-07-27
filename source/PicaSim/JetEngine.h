@@ -40,6 +40,7 @@ private:
     float mControl;
     float mControlExp;
     float mControlRate;
+    float mControlRateReverse;
 
     // Optional per-engine custom 5-point throttle curve, independent of the
     // controller-level curve. See PropellerEngine.h for the same mechanism.
