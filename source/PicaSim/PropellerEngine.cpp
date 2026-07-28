@@ -7,6 +7,7 @@
 #include "Controller.h"
 #include "Environment.h"
 #include "DimensionalScaling.h"
+#include "GameSettings.h"
 #include "PicaSim.h"
 
 //======================================================================================================================
@@ -70,6 +71,8 @@ void PropellerEngine::ReadFromXML(TiXmlElement* engineElement, EngineData& engin
     // coming out of it). Falls back to controlRate when not specified.
     mControlRateReverse = mControlRate;
     readFromXML(engineElement, "controlRateReverse", mControlRateReverse);
+    mVectorMaxAngle = 0.0f;
+    readFromXML(engineElement, "vectorMaxAngle", mVectorMaxAngle);
     readFromXML(engineElement, "channelForMode", mChannelForMode);
     readFromXML(engineElement, "reverseThrustScale", mReverseThrustScale);
 
@@ -425,6 +428,27 @@ void PropellerEngine::UpdatePrePhysics(float deltaTime, const TurbulenceData& tu
 
             throttleControl = mControl;
 
+        }
+
+        // 4D thrust vectoring - the engine physically gimbals with elevator/rudder
+        // stick input, like a real vectored 4D power pod. Independent of
+        // MODE_THROTTLE's pitchAngle/yawAngle reset above (that reset is for the
+        // unrelated variable-pitch-prop feature). Only active once the pilot has
+        // picked a vectoring option under 4D mode - "No vector" leaves the engine
+        // fixed and relies on the control surfaces instead.
+        if (mVectorMaxAngle != 0.0f)
+        {
+            int vectorMode = controller.GetVectorMode();
+            float maxAngleRad = DegreesToRadians(mVectorMaxAngle);
+            if (vectorMode == ControllerSettings::VECTOR_MODE_SINGLE)
+            {
+                yawAngle += maxAngleRad * controller.GetControl(Controller::CHANNEL_RUDDER);
+            }
+            else if (vectorMode == ControllerSettings::VECTOR_MODE_TWOAXIS)
+            {
+                pitchAngle += maxAngleRad * controller.GetControl(Controller::CHANNEL_ELEVATOR);
+                yawAngle += maxAngleRad * controller.GetControl(Controller::CHANNEL_RUDDER);
+            }
         }
     }
 
