@@ -89,6 +89,10 @@ private:
     float mControlExp;
     float mControlRate;
     float mControlRateReverse;
+
+    /// Max thrust-vector gimbal angle (degrees) for 4D thrust vectoring - see
+    /// UpdatePrePhysics. 0 (default) = no vectoring, matching plain engines.
+    float mVectorMaxAngle;
     int mChannelForMode;
 
     // Scales the net thrust force when running in reverse (negative controller
@@ -97,6 +101,12 @@ private:
     // defaults to 1.0 (symmetric) but can be set below 1.0 to make backward flight
     // weaker/slower than forward. Only affects propAeroForce, not prop spin speed.
     float mReverseThrustScale;
+
+    /// Max gimbal deflection (degrees) for real thrust vectoring while flying
+    /// backward in 4D mode - the engine physically tilts with rudder (single
+    /// vector) or rudder+elevator (2 axis vector), like a real vectored 4D power
+    /// system. 0 (default) = no engine gimbal at all.
+    float mVectorMaxAngleDegrees;
 
     // Optional per-engine custom 5-point throttle curve (independent of the
     // controller-level curve in ControllerSettings::ControlSetting). Lets two
