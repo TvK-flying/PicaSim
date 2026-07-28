@@ -31,6 +31,12 @@ public:
     virtual void SetInputControl(int control, float value) {}
     virtual float GetInputControl(int control) const {return 0.0f;}
 
+    /// 4D thrust-vectoring mode (values match
+    /// GameSettings::ControllerSettings::VectorMode). Only meaningful when this
+    /// controller has 4D mode enabled; returns VECTOR_MODE_NONE (0) otherwise,
+    /// including for controllers (AI, replay, etc.) that don't support 4D at all.
+    virtual int GetVectorMode() const {return 0;}
+
 };
 
 #endif
