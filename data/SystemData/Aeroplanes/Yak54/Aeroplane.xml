@@ -227,7 +227,7 @@ Yak 54 - 4 channel indoor plane
       controlRateReverse="40"
       controlPerChannel3="1"
       reverseThrustScale="0.6"
-      vectorMaxAngle="20"
+      vectorMaxAngle="15"
 
       audioFile="SystemData/Audio/NewMotor44100Mono.raw"
       audioSampleRate="44100"
