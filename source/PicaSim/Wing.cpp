@@ -329,24 +329,31 @@ void Wing::UpdatePrePhysics(float deltaTime, const TurbulenceData& turbulenceDat
     if (!mVectorAxis.empty())
     {
         // Driven by the referenced engine's own signed control (already ramped at
-        // controlRate/controlRateReverse) rather than actual airspeed - the plane's
-        // airspeed lags behind due to momentum, but the pilot expects the vectoring
-        // scale to respond as soon as the engine itself commits to reverse.
+        // controlRate/controlRateReverse) OR the aircraft's actual airspeed -
+        // whichever says "reverse" first. Engine-only reacts fast on entry into
+        // reverse, but on its own it's buggy: a brief full-forward command while
+        // still physically flying backward (e.g. correcting out of a hover) would
+        // instantly restore full throw even though the plane hasn't actually
+        // turned around yet. Airspeed alone reacts correctly but lags on entry
+        // due to momentum. Combining them gives fast entry and correct persistence.
         const Engine* engine = mVectorEngineName.empty() ? nullptr :
             mAeroplane->GetPhysics()->GetEngine(mVectorEngineName);
         float signedControl = engine ? engine->GetSignedControl() : 0.0f;
-        if (signedControl < 0.0f)
+        Vector3 forwardDir = mAeroplane->GetTransform().RowX();
+        float forwardSpeed = mAeroplane->GetVelocity().Dot(forwardDir);
+        if (signedControl < 0.0f || forwardSpeed < 0.0f)
         {
             // Driven live by the controller's 4D thrust-vectoring setting:
-            // - No vector:     pitch 20%, yaw 20%
-            // - Single vector: pitch 20%, yaw 100%
+            // - No vector:     pitch 40%, yaw 40%
+            // - Single vector: pitch 35%, yaw 100%
             // - 2 axis vector: pitch 100%, yaw 100%
             int vectorMode = mAeroplane->GetController().GetVectorMode();
             float scale = 1.0f;
             if (mVectorAxis == "pitch")
-                scale = (vectorMode == ControllerSettings::VECTOR_MODE_TWOAXIS) ? 1.0f : 0.2f;
+                scale = (vectorMode == ControllerSettings::VECTOR_MODE_TWOAXIS) ? 1.0f :
+                        (vectorMode == ControllerSettings::VECTOR_MODE_SINGLE) ? 0.35f : 0.4f;
             else if (mVectorAxis == "yaw")
-                scale = (vectorMode == ControllerSettings::VECTOR_MODE_NONE) ? 0.2f : 1.0f;
+                scale = (vectorMode == ControllerSettings::VECTOR_MODE_NONE) ? 0.4f : 1.0f;
             effectiveDegreesPerControl *= scale;
         }
     }
