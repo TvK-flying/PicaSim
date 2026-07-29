@@ -87,6 +87,12 @@ private:
     /// GameSettings::ControllerSettings::VectorMode) instead of the fixed
     /// mBackwardFlightControlScale above. Empty (default) = not vectored.
     std::string mVectorAxis;
+
+    /// Name of the engine whose signed control (see Engine::GetSignedControl)
+    /// triggers the vectoring scale above - reacts as fast as the engine's own
+    /// controlRate/controlRateReverse ramp, rather than waiting for the aircraft's
+    /// actual airspeed to turn around. Only used if mVectorAxis is set.
+    std::string mVectorEngineName;
 };
 
 #endif
