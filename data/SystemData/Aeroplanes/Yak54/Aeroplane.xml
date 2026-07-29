@@ -22,7 +22,7 @@ Yak 54 - 4 channel indoor plane
       aerofoil="SystemData/Aerofoils/Symmetric/Flat"
       numPieces="2"
       numSections="1"
-      mass="0.013"
+      mass="0.012"
 
       positionX="-0.06"
       positionY="0.0"
@@ -43,7 +43,7 @@ Yak 54 - 4 channel indoor plane
       aerofoil="SystemData/Aerofoils/Symmetric/Flat"
       numPieces="2"
       numSections="1"
-      mass="0.0087"
+      mass="0.008"
 
       positionX="-0.0"
       positionY="-0.05"
@@ -62,7 +62,7 @@ Yak 54 - 4 channel indoor plane
       name="Left1"
       aerofoil="SystemData/Aeroplanes/Yak54/Wing"
       numSections="3"
-      mass="0.022"
+      mass="0.020"
 
       positionX="0.01"
       positionY="0.05"
@@ -91,7 +91,7 @@ Yak 54 - 4 channel indoor plane
       name="Left2"
       aerofoil="SystemData/Aeroplanes/Yak54/Wing"
       numSections="3"
-      mass="0.013"
+      mass="0.012"
 
       positionX="0.02"
       positionY="0.21"
@@ -132,7 +132,7 @@ Yak 54 - 4 channel indoor plane
       name="Tail"
       aerofoil="SystemData/Aerofoils/Symmetric/Flat"
       numSections="2"
-      mass="0.008"
+      mass="0.007"
 
       positionX="-0.45"
       positionY="-0.19"
@@ -169,7 +169,7 @@ Yak 54 - 4 channel indoor plane
       name="Fin"
       aerofoil="SystemData/Aerofoils/Symmetric/Flat"
       numSections="2"
-      mass="0.007"
+      mass="0.006"
 
       positionX="-0.48"
       positionY="0.0"
@@ -214,7 +214,7 @@ Yak 54 - 4 channel indoor plane
       stallAngle="20"
       inertia = "0.000022"
       maxTorque = "0.023"
-      maxRPM = "10800.0"
+      maxRPM = "9700.0"
       minRPM = "0.0"
       frictionTorque ="0.004"
       aeroTorqueScale="1.0"
@@ -247,7 +247,7 @@ Yak 54 - 4 channel indoor plane
 
     <Fuselage
       name="Fuselage"
-      mass="0.012"
+      mass="0.011"
       positionX="0.14"
       positionY="0.0"
       positionZ="0.0"
@@ -337,7 +337,7 @@ Yak 54 - 4 channel indoor plane
     <Shape
       type="box"
       name="Nose weight"
-      mass="0.044"
+      mass="0.040"
       positionX="0.23"
       positionY="0.0"
       positionZ="-0.01"
