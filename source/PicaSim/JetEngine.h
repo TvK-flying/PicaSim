@@ -25,6 +25,7 @@ public:
     Transform GetTM() const OVERRIDE {return mTM;}
 
     float GetRadius() const OVERRIDE {return FLT_MAX;}
+    float GetSignedControl() const OVERRIDE {return mControl;}
 
 private:
     class Aeroplane* mAeroplane;
