@@ -225,7 +225,7 @@ Yak 54 - 4 channel indoor plane
       isVariable="0"
 
       controlExp="1.2"
-      controlRate="30"
+      controlRate="24"
       controlRateReverse="90"
       controlPerChannel3="1"
       reverseThrustScale="0.6"
