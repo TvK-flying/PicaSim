@@ -688,7 +688,17 @@ void HumanController::EntityUpdate(float deltaTime, int entityLevel)
             // to the full -1..1 range and apply curve/exponential to the magnitude
             // only, so a negative value here correctly produces reverse thrust.
             float normalisedPosition = (mProcessedInputControls[i] + 1.0f) * 0.5f;   // 0..1
-            mProcessedInputControls[i] = (normalisedPosition - 0.5f) * 2.0f;         // -1..1: 0%->-1, 50%->0, 100%->+1
+            float raw = (normalisedPosition - 0.5f) * 2.0f;                         // -1..1: 0%->-1, 50%->0, 100%->+1
+
+            // Small deadband around stick-center so it's easy to land exactly on
+            // motor-off, without needing to touch the throttle curve. Beyond the
+            // deadband, the remaining travel is rescaled so full reverse/forward
+            // are still reachable at the stick's extremes.
+            const float deadband = 0.08f;
+            if (fabsf(raw) < deadband)
+                mProcessedInputControls[i] = 0.0f;
+            else
+                mProcessedInputControls[i] = (raw - (raw > 0.0f ? deadband : -deadband)) / (1.0f - deadband);
         }
         else if (controlSettings[i].mUseThrottleCurve)
         {
