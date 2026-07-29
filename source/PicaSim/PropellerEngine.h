@@ -30,6 +30,7 @@ public:
     float GetRadius() const OVERRIDE {return mRadius;}
 
     float GetPropSpeed() const OVERRIDE {return mW;}
+    float GetSignedControl() const OVERRIDE {return mControl;}
 
 private:
     // Data struct for XML values that need post-processing (position, rotation, audio)
