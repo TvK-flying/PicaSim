@@ -694,7 +694,7 @@ void HumanController::EntityUpdate(float deltaTime, int entityLevel)
             // motor-off, without needing to touch the throttle curve. Beyond the
             // deadband, the remaining travel is rescaled so full reverse/forward
             // are still reachable at the stick's extremes.
-            const float deadband = 0.08f;
+            const float deadband = 0.10f;
             if (fabsf(raw) < deadband)
                 mProcessedInputControls[i] = 0.0f;
             else
