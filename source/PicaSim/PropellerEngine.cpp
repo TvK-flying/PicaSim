@@ -446,7 +446,7 @@ void PropellerEngine::UpdatePrePhysics(float deltaTime, const TurbulenceData& tu
             }
             else if (vectorMode == ControllerSettings::VECTOR_MODE_TWOAXIS)
             {
-                pitchAngle += maxAngleRad * controller.GetControl(Controller::CHANNEL_ELEVATOR);
+                pitchAngle -= maxAngleRad * controller.GetControl(Controller::CHANNEL_ELEVATOR);
                 yawAngle += maxAngleRad * controller.GetControl(Controller::CHANNEL_RUDDER);
             }
         }
