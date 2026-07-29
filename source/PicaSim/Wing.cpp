@@ -338,16 +338,15 @@ void Wing::UpdatePrePhysics(float deltaTime, const TurbulenceData& turbulenceDat
         if (signedControl < 0.0f)
         {
             // Driven live by the controller's 4D thrust-vectoring setting:
-            // - No vector:     pitch 20%, yaw 40%
-            // - Single vector: pitch 50%, yaw 100%
+            // - No vector:     pitch 20%, yaw 20%
+            // - Single vector: pitch 20%, yaw 100%
             // - 2 axis vector: pitch 100%, yaw 100%
             int vectorMode = mAeroplane->GetController().GetVectorMode();
             float scale = 1.0f;
             if (mVectorAxis == "pitch")
-                scale = (vectorMode == ControllerSettings::VECTOR_MODE_TWOAXIS) ? 1.0f :
-                        (vectorMode == ControllerSettings::VECTOR_MODE_SINGLE) ? 0.5f : 0.2f;
+                scale = (vectorMode == ControllerSettings::VECTOR_MODE_TWOAXIS) ? 1.0f : 0.2f;
             else if (mVectorAxis == "yaw")
-                scale = (vectorMode == ControllerSettings::VECTOR_MODE_NONE) ? 0.4f : 1.0f;
+                scale = (vectorMode == ControllerSettings::VECTOR_MODE_NONE) ? 0.2f : 1.0f;
             effectiveDegreesPerControl *= scale;
         }
     }
