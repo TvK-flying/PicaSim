@@ -2007,6 +2007,7 @@ void SettingsMenu::RenderControllerTab()
             // Roll Stick Movement
             if (haveController[ControllerSettings::CONTROLLER_STICK_ROLL])
             {
+                ImGui::PushID("RollStick");
                 SettingsWidgets::SectionHeader(TXT(PS_ROLLSTICKMOVEMENT));
                 SettingsWidgets::BeginSettingsBlock();
                 {
@@ -2020,11 +2021,13 @@ void SettingsMenu::RenderControllerTab()
                     SettingsWidgets::Checkbox(TXT(PS_SPRING), setting.mAutoCentre);
                 }
                 SettingsWidgets::EndSettingsBlock();
+                ImGui::PopID();
             }
 
             // Pitch Stick Movement
             if (haveController[ControllerSettings::CONTROLLER_STICK_PITCH])
             {
+                ImGui::PushID("PitchStick");
                 SettingsWidgets::SectionHeader(TXT(PS_PITCHSTICKMOVEMENT));
                 SettingsWidgets::BeginSettingsBlock();
                 {
@@ -2038,11 +2041,13 @@ void SettingsMenu::RenderControllerTab()
                     SettingsWidgets::Checkbox(TXT(PS_SPRING), setting.mAutoCentre);
                 }
                 SettingsWidgets::EndSettingsBlock();
+                ImGui::PopID();
             }
 
             // Yaw Stick Movement
             if (haveController[ControllerSettings::CONTROLLER_STICK_YAW])
             {
+                ImGui::PushID("YawStick");
                 SettingsWidgets::SectionHeader(TXT(PS_YAWSTICKMOVEMENT));
                 SettingsWidgets::BeginSettingsBlock();
                 {
@@ -2056,11 +2061,13 @@ void SettingsMenu::RenderControllerTab()
                     SettingsWidgets::Checkbox(TXT(PS_SPRING), setting.mAutoCentre);
                 }
                 SettingsWidgets::EndSettingsBlock();
+                ImGui::PopID();
             }
 
             // Speed Stick Movement
             if (haveController[ControllerSettings::CONTROLLER_STICK_SPEED])
             {
+                ImGui::PushID("SpeedStick");
                 SettingsWidgets::SectionHeader(TXT(PS_SPEEDSTICKMOVEMENT));
                 SettingsWidgets::BeginSettingsBlock();
                 {
@@ -2095,11 +2102,13 @@ void SettingsMenu::RenderControllerTab()
                     SettingsWidgets::Checkbox(TXT(PS_SPRING), setting.mAutoCentre);
                 }
                 SettingsWidgets::EndSettingsBlock();
+                ImGui::PopID();
             }
 
             // Accelerometer Roll Movement
             if (haveController[ControllerSettings::CONTROLLER_ACCEL_HORIZONTAL])
             {
+                ImGui::PushID("AccelHorizontal");
                 SettingsWidgets::SectionHeader(TXT(PS_ACCELEROMETERROLLMOVEMENT));
                 SettingsWidgets::BeginSettingsBlock();
                 {
@@ -2113,11 +2122,13 @@ void SettingsMenu::RenderControllerTab()
                     SettingsWidgets::SliderFloat(TXT(PS_TILTROLLSENSITIVITY), cs.mControllerAccelerometerXSensitivity, 0.0f, 1.0f);
                 }
                 SettingsWidgets::EndSettingsBlock();
+                ImGui::PopID();
             }
 
             // Accelerometer Pitch Movement
             if (haveController[ControllerSettings::CONTROLLER_ACCEL_VERTICAL])
             {
+                ImGui::PushID("AccelVertical");
                 SettingsWidgets::SectionHeader(TXT(PS_ACCELEROMETERPITCHMOVEMENT));
                 SettingsWidgets::BeginSettingsBlock();
                 {
@@ -2132,11 +2143,13 @@ void SettingsMenu::RenderControllerTab()
                     SettingsWidgets::SliderFloat(TXT(PS_TILTNEUTRALANGLE), cs.mControllerAccelerometerOffsetAngle, 0.0f, 90.0f, "%.0f deg");
                 }
                 SettingsWidgets::EndSettingsBlock();
+                ImGui::PopID();
             }
 
             // Constant
             if (haveController[ControllerSettings::CONTROLLER_CONSTANT])
             {
+                ImGui::PushID("Constant");
                 SettingsWidgets::SectionHeader(TXT(PS_CONSTANT));
                 SettingsWidgets::BeginSettingsBlock();
                 {
@@ -2144,6 +2157,7 @@ void SettingsMenu::RenderControllerTab()
                     SettingsWidgets::SliderFloat(TXT(PS_TRIM), setting.mTrim, -1.0f, 1.0f);
                 }
                 SettingsWidgets::EndSettingsBlock();
+                ImGui::PopID();
             }
         }
 
