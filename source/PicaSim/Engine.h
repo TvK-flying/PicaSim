@@ -33,6 +33,13 @@ public:
     // Gets the angular velocity  - relevant for propellers
     virtual float GetPropSpeed() const {return 0.0f;}
 
+    /// Current commanded control, signed (-1 full reverse .. +1 full forward),
+    /// after any per-engine ramping (controlRate/controlRateReverse). Lets other
+    /// systems (e.g. Wing thrust-vectoring) react to reverse thrust as fast as the
+    /// engine itself does, rather than waiting for the aircraft's actual airspeed
+    /// to catch up. Default 0 for engine types that don't support reverse.
+    virtual float GetSignedControl() const {return 0.0f;}
+
 protected:
     std::string mName;
     Vector3 mLastWash;
