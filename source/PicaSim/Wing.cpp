@@ -6,6 +6,7 @@
 #include "AeroplanePhysics.h"
 #include "Controller.h"
 #include "DimensionalScaling.h"
+#include "Engine.h"
 #include "PicaSim.h"
 
 // For data that needs to be interpreted for the aerofoil
@@ -87,6 +88,7 @@ bool Wing::ReadFromXML(class TiXmlElement* wingElement, AerofoilData& aerofoilDa
     mBackwardFlightControlScale = 1.0f;
     readFromXML(wingElement, "backwardFlightControlScale", mBackwardFlightControlScale);
     readFromXML(wingElement, "vectorAxis", mVectorAxis);
+    readFromXML(wingElement, "vectorEngineName", mVectorEngineName);
     readFromXML(wingElement, "flapFraction", mFlapFraction);
     readFromXML(wingElement, "slopDegreesPerNewton", mSlopDegreesPerNewton);
 
@@ -324,32 +326,37 @@ void Wing::UpdatePrePhysics(float deltaTime, const TurbulenceData& turbulenceDat
     }
 
     float effectiveDegreesPerControl = mDegreesPerControl;
-    if (!mVectorAxis.empty() || mBackwardFlightControlScale != 1.0f)
+    if (!mVectorAxis.empty())
+    {
+        // Driven by the referenced engine's own signed control (already ramped at
+        // controlRate/controlRateReverse) rather than actual airspeed - the plane's
+        // airspeed lags behind due to momentum, but the pilot expects the vectoring
+        // scale to respond as soon as the engine itself commits to reverse.
+        const Engine* engine = mVectorEngineName.empty() ? nullptr :
+            mAeroplane->GetPhysics()->GetEngine(mVectorEngineName);
+        float signedControl = engine ? engine->GetSignedControl() : 0.0f;
+        if (signedControl < 0.0f)
+        {
+            // Driven live by the controller's 4D thrust-vectoring setting:
+            // - No vector:     pitch 20%, yaw 40%
+            // - Single vector: pitch 50%, yaw 100%
+            // - 2 axis vector: pitch 100%, yaw 100%
+            int vectorMode = mAeroplane->GetController().GetVectorMode();
+            float scale = 1.0f;
+            if (mVectorAxis == "pitch")
+                scale = (vectorMode == ControllerSettings::VECTOR_MODE_TWOAXIS) ? 1.0f :
+                        (vectorMode == ControllerSettings::VECTOR_MODE_SINGLE) ? 0.5f : 0.2f;
+            else if (mVectorAxis == "yaw")
+                scale = (vectorMode == ControllerSettings::VECTOR_MODE_NONE) ? 0.4f : 1.0f;
+            effectiveDegreesPerControl *= scale;
+        }
+    }
+    else if (mBackwardFlightControlScale != 1.0f)
     {
         Vector3 forwardDir = mAeroplane->GetTransform().RowX();
         float forwardSpeed = mAeroplane->GetVelocity().Dot(forwardDir);
         if (forwardSpeed < 0.0f)
-        {
-            if (!mVectorAxis.empty())
-            {
-                // Driven live by the controller's 4D thrust-vectoring setting:
-                // - No vector:     pitch 20%, yaw 40%
-                // - Single vector: pitch 50%, yaw 100%
-                // - 2 axis vector: pitch 100%, yaw 100%
-                int vectorMode = mAeroplane->GetController().GetVectorMode();
-                float scale = 1.0f;
-                if (mVectorAxis == "pitch")
-                    scale = (vectorMode == ControllerSettings::VECTOR_MODE_TWOAXIS) ? 1.0f :
-                            (vectorMode == ControllerSettings::VECTOR_MODE_SINGLE) ? 0.5f : 0.2f;
-                else if (mVectorAxis == "yaw")
-                    scale = (vectorMode == ControllerSettings::VECTOR_MODE_NONE) ? 0.4f : 1.0f;
-                effectiveDegreesPerControl *= scale;
-            }
-            else
-            {
-                effectiveDegreesPerControl *= mBackwardFlightControlScale;
-            }
-        }
+            effectiveDegreesPerControl *= mBackwardFlightControlScale;
     }
     mFlapAngle = mControl * effectiveDegreesPerControl;
 
