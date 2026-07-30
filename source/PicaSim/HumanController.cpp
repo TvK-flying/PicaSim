@@ -1027,3 +1027,11 @@ int HumanController::GetVectorMode() const
         return ControllerSettings::VECTOR_MODE_NONE;
     return speedSetting.mVectorMode;
 }
+
+//======================================================================================================================
+bool HumanController::GetEnable4DMode() const
+{
+    const ControllerSettings::ControlSetting* controlSettings =
+        mGameSettings.mControllerSettings.GetControlSettings();
+    return controlSettings[ControllerSettings::CONTROLLER_STICK_SPEED].mEnable4DMode;
+}
