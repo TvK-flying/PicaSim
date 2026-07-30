@@ -37,6 +37,20 @@ public:
     /// including for controllers (AI, replay, etc.) that don't support 4D at all.
     virtual int GetVectorMode() const {return 0;}
 
+    /// Whether 4D mode (reverse thrust) is actually enabled on this controller.
+    /// GetVectorMode() alone can't distinguish "4D is off" from "4D is on with
+    /// 'No vector' selected" - both return 0 - so anything that should only ever
+    /// apply while 4D is on (e.g. reduced control throw while flying backward)
+    /// must check this too, not just branch on GetVectorMode()'s value.
+    virtual bool GetEnable4DMode() const {return false;}
+
+    /// Whether 4D mode is enabled at all. Needed because GetVectorMode() returns
+    /// VECTOR_MODE_NONE (0) both when 4D is off AND when 4D is on with "No vector"
+    /// selected - callers that should only act while 4D is genuinely active (e.g.
+    /// Wing's backward-flight throw reduction) must check this too, not just test
+    /// GetVectorMode() for a non-zero value.
+    virtual bool GetEnable4DMode() const {return false;}
+
 };
 
 #endif
