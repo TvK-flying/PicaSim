@@ -44,13 +44,6 @@ public:
     /// must check this too, not just branch on GetVectorMode()'s value.
     virtual bool GetEnable4DMode() const {return false;}
 
-    /// Whether 4D mode is enabled at all. Needed because GetVectorMode() returns
-    /// VECTOR_MODE_NONE (0) both when 4D is off AND when 4D is on with "No vector"
-    /// selected - callers that should only act while 4D is genuinely active (e.g.
-    /// Wing's backward-flight throw reduction) must check this too, not just test
-    /// GetVectorMode() for a non-zero value.
-    virtual bool GetEnable4DMode() const {return false;}
-
 };
 
 #endif
