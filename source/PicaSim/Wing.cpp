@@ -326,7 +326,7 @@ void Wing::UpdatePrePhysics(float deltaTime, const TurbulenceData& turbulenceDat
     }
 
     float effectiveDegreesPerControl = mDegreesPerControl;
-    if (!mVectorAxis.empty())
+    if (!mVectorAxis.empty() && mAeroplane->GetController().GetEnable4DMode())
     {
         // Driven by the referenced engine's own signed control (already ramped at
         // controlRate/controlRateReverse) OR the aircraft's actual airspeed -
