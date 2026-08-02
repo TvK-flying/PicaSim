@@ -154,7 +154,7 @@ static bool RenderEditableValueLabel(const char* label, const char* valueText, f
     if (sEditingValueId == valueId)
     {
         // Edit mode: a small input box in place of the value text
-        float boxWidth = ImMax(valueWidth + 24.0f * UIHelpers::GetFontScale(), 40.0f * UIHelpers::GetFontScale());
+        float boxWidth = std::max(valueWidth + 24.0f * UIHelpers::GetFontScale(), 40.0f * UIHelpers::GetFontScale());
         ImGui::SetNextItemWidth(boxWidth);
         if (sJustStartedEditingValue)
         {
