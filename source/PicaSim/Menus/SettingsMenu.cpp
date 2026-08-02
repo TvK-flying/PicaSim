@@ -2150,6 +2150,7 @@ void SettingsMenu::RenderControllerTab()
         }
 
         // Mixes section - shown in both simple and advanced views
+        ImGui::PushID("Mixes");
         SettingsWidgets::SectionHeader(TXT(PS_MIXES));
         SettingsWidgets::BeginSettingsBlock();
         {
@@ -2162,6 +2163,7 @@ void SettingsMenu::RenderControllerTab()
             SettingsWidgets::SliderFloat(TXT(PS_RUDDERTOAILERON), mix.mMixRudderToAileron, -1.0f, 1.0f);
         }
         SettingsWidgets::EndSettingsBlock();
+        ImGui::PopID();
 
         ImGui::PopID();
     }
