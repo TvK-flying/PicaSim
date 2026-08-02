@@ -7,6 +7,7 @@
 #include "imgui.h"
 
 #include <cstdio>
+#include <cstdlib>
 #include <cmath>
 #include <algorithm>
 
@@ -77,8 +78,13 @@ static const ImVec4 kThumbnailPlaceholderColor = PicaStyle::ImageButton::Placeho
 //=====================================================================================================================
 // State counters (reset each frame)
 //=====================================================================================================================
-static int sSettingsBlockCounter = 0;
-static int sSectionHeaderCounter = 0;
+// Tracks which slider/value widget (if any) is currently in click-to-type
+// edit mode, plus its text buffer. Only one value can be edited at a time
+// app-wide - that's a deliberate simplification, it means we don't need any
+// per-widget persistent storage, just these two globals.
+static ImGuiID sEditingValueId = 0;
+static char sEditValueBuffer[64] = "";
+static bool sJustStartedEditingValue = false;
 
 namespace SettingsWidgets {
 
@@ -109,7 +115,103 @@ static void RenderRightAlignedLabel(const char* label, float labelWidth)
 }
 
 //======================================================================================================================
-void SectionHeader(const char* title)
+// Renders "Label (value)" right-aligned, where "value" is a click-to-type
+// field: click the number, type an exact value, press Enter (or click
+// elsewhere) to commit it. Only the number is interactive - the label text
+// stays static.
+//
+// IMPORTANT: this relies entirely on the caller's current ImGui ID stack for
+// uniqueness (via ImGui::GetID here, and via the InputText widget's own ID).
+// Callers (SliderFloat/SliderFloatPower/SliderInt) wrap this in
+// ImGui::PushID(label), and every settings block in this file already scopes
+// itself uniquely (see BeginSettingsBlock) - so this is safe to call from
+// inside a per-item loop without causing the duplicate-ID class of bug.
+//
+// Returns true and writes the parsed number to *outTypedValue if the user
+// just committed a new value by typing.
+static bool RenderEditableValueLabel(const char* label, const char* valueText, float labelWidth, float* outTypedValue)
+{
+    ImGui::AlignTextToFramePadding();
+
+    char prefix[224];
+    snprintf(prefix, sizeof(prefix), "%s (", label);
+
+    float prefixWidth = ImGui::CalcTextSize(prefix).x;
+    float valueWidth = ImGui::CalcTextSize(valueText).x;
+    float closeParenWidth = ImGui::CalcTextSize(")").x;
+    float startX = ImGui::GetCursorPosX();
+    float totalWidth = prefixWidth + valueWidth + closeParenWidth;
+    float textX = startX + labelWidth - totalWidth - kLabelRightPadding;
+    if (textX > startX)
+        ImGui::SetCursorPosX(textX);
+
+    ImGui::TextUnformatted(prefix);
+    ImGui::SameLine(0.0f, 0.0f);
+
+    ImGuiID valueId = ImGui::GetID("##editval");
+    bool typed = false;
+
+    if (sEditingValueId == valueId)
+    {
+        // Edit mode: a small input box in place of the value text
+        float boxWidth = ImMax(valueWidth + 24.0f * UIHelpers::GetFontScale(), 40.0f * UIHelpers::GetFontScale());
+        ImGui::SetNextItemWidth(boxWidth);
+        if (sJustStartedEditingValue)
+        {
+            ImGui::SetKeyboardFocusHere();
+            sJustStartedEditingValue = false;
+        }
+        ImGui::InputText("##edit", sEditValueBuffer, sizeof(sEditValueBuffer),
+            ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll);
+
+        // Commit on Enter (EnterReturnsTrue) or on losing focus for any other
+        // reason (click away, tab, Escape - ImGui reverts the buffer itself
+        // for Escape, so committing sEditValueBuffer here is still correct).
+        if (ImGui::IsItemDeactivated())
+        {
+            if (outTypedValue)
+                *outTypedValue = (float)atof(sEditValueBuffer);
+            typed = true;
+            sEditingValueId = 0;
+        }
+    }
+    else
+    {
+        // Display mode: plain text that's clickable to enter edit mode
+        ImVec2 textPos = ImGui::GetCursorScreenPos();
+        ImGui::TextUnformatted(valueText);
+        ImVec2 textSize = ImGui::CalcTextSize(valueText);
+
+        if (ImGui::IsItemHovered())
+        {
+            // Underline on hover so it reads as interactive
+            ImDrawList* drawList = ImGui::GetWindowDrawList();
+            ImVec2 lineStart(textPos.x, textPos.y + textSize.y);
+            ImVec2 lineEnd(textPos.x + textSize.x, textPos.y + textSize.y);
+            drawList->AddLine(lineStart, lineEnd, kAccentColor, 1.0f);
+        }
+
+        if (ImGui::IsItemClicked())
+        {
+            sEditingValueId = valueId;
+            snprintf(sEditValueBuffer, sizeof(sEditValueBuffer), "%s", valueText);
+            sJustStartedEditingValue = true;
+        }
+    }
+
+    ImGui::SameLine(0.0f, 0.0f);
+    ImGui::TextUnformatted(")");
+
+    // Position next element at labelWidth from start, matching
+    // RenderRightAlignedLabel's contract
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(startX + labelWidth);
+
+    return typed;
+}
+
+//======================================================================================================================
+void SectionHeaderImpl(const char* title, int callSiteId)
 {
     // Colored button-like header (not clickable, just visual)
     ImGui::PushStyleColor(ImGuiCol_Button, kSectionHeaderBgColor);
@@ -121,8 +223,9 @@ void SectionHeader(const char* title)
     ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.5f));
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, kSectionHeaderRounding);
 
-    // Use unique ID to prevent conflicts when same title is used multiple times
-    ImGui::PushID(sSectionHeaderCounter++);
+    // Use the call site (source line) as the ID, not a runtime counter - see
+    // the comment on the Impl functions in SettingsWidgets.h for why.
+    ImGui::PushID(callSiteId);
     ImGui::Button(title, ImVec2(-1, 0));
     ImGui::PopID();
 
@@ -134,7 +237,7 @@ void SectionHeader(const char* title)
 }
 
 //======================================================================================================================
-void SectionHeaderColored(const char* title, float r, float g, float b)
+void SectionHeaderColoredImpl(const char* title, float r, float g, float b, int callSiteId)
 {
     // Background color from parameters
     ImVec4 bgColor(r, g, b, 1.0f);
@@ -156,8 +259,9 @@ void SectionHeaderColored(const char* title, float r, float g, float b)
     ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.5f));
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, kSectionHeaderRounding);
 
-    // Use unique ID to prevent conflicts when same title is used multiple times
-    ImGui::PushID(sSectionHeaderCounter++);
+    // Use the call site (source line) as the ID, not a runtime counter - see
+    // the comment on the Impl functions in SettingsWidgets.h for why.
+    ImGui::PushID(callSiteId);
     ImGui::Button(title, ImVec2(-1, 0));
     ImGui::PopID();
 
@@ -175,23 +279,23 @@ void UberSectionHeader(const char* title)
 }
 
 //======================================================================================================================
-bool BeginSettingsBlock()
+bool BeginSettingsBlockImpl(int callSiteId)
 {
     // Push styling for the settings block
     ImGui::PushStyleColor(ImGuiCol_ChildBg, kSettingsBlockBgColor);
     ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, kSettingsBlockRounding);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, kSettingsBlockPadding);
 
-    // Generate unique ID for this settings block
+    // ID for this settings block, derived from the call site (source line)
+    // rather than a runtime counter - see the comment on the Impl functions
+    // in SettingsWidgets.h for why that matters.
     char id[32];
-    snprintf(id, sizeof(id), "SettingsBlock%d", sSettingsBlockCounter++);
+    snprintf(id, sizeof(id), "SettingsBlock_L%d", callSiteId);
 
     // Explicitly push this ID onto the stack *in addition to* using it as the
     // child window ID below. This guarantees every widget rendered inside a
     // settings block gets a unique ID scope even if a caller forgets to wrap
-    // a repeated block (e.g. a per-item loop) in its own PushID/PopID -
-    // this is a root-cause fix for the "duplicate label -> conflicting ID"
-    // class of bug that previously had to be patched section by section.
+    // a repeated block (e.g. a per-item loop) in its own PushID/PopID.
     ImGui::PushID(id);
 
     // Begin a child region with auto-sizing height
@@ -373,16 +477,20 @@ bool SliderFloat(const char* label, float& value, float min, float max, const ch
     float controlWidth = availWidth * kControlWidthFraction;
     float labelWidth = availWidth - controlWidth;
 
-    // Format label with value: "Label (value)"
-    char labelWithValue[256];
     char valueBuf[64];
     snprintf(valueBuf, sizeof(valueBuf), format, value);
-    snprintf(labelWithValue, sizeof(labelWithValue), "%s (%s)", label, valueBuf);
 
-    // Right-aligned label (includes value)
-    RenderRightAlignedLabel(labelWithValue, labelWidth);
+    ImGui::PushID(label);
+    float typedValue = 0.0f;
+    bool typed = RenderEditableValueLabel(label, valueBuf, labelWidth, &typedValue);
+    ImGui::PopID();
 
-    return CustomSliderBehavior(label, value, min, max, controlWidth);
+    if (typed)
+        value = Clamp(typedValue, min, max);
+
+    bool sliderChanged = CustomSliderBehavior(label, value, min, max, controlWidth);
+
+    return typed || sliderChanged;
 }
 
 //======================================================================================================================
@@ -392,14 +500,16 @@ bool SliderFloatPower(const char* label, float& value, float min, float max, flo
     float controlWidth = availWidth * kControlWidthFraction;
     float labelWidth = availWidth - controlWidth;
 
-    // Format label with value: "Label (value)"
-    char labelWithValue[256];
     char valueBuf[64];
     snprintf(valueBuf, sizeof(valueBuf), format, value);
-    snprintf(labelWithValue, sizeof(labelWithValue), "%s (%s)", label, valueBuf);
 
-    // Right-aligned label (includes value)
-    RenderRightAlignedLabel(labelWithValue, labelWidth);
+    ImGui::PushID(label);
+    float typedValue = 0.0f;
+    bool typed = RenderEditableValueLabel(label, valueBuf, labelWidth, &typedValue);
+    ImGui::PopID();
+
+    if (typed)
+        value = Clamp(typedValue, min, max);
 
     // Convert actual value to normalized slider position using inverse power
     // This gives finer control at lower values when power > 1
@@ -411,9 +521,9 @@ bool SliderFloatPower(const char* label, float& value, float min, float max, flo
     // Use slider on the transformed value (0-1 range)
     float sliderMin = 0.0f;
     float sliderMax = 1.0f;
-    bool changed = CustomSliderBehavior(label, sliderFrac, sliderMin, sliderMax, controlWidth);
+    bool sliderChanged = CustomSliderBehavior(label, sliderFrac, sliderMin, sliderMax, controlWidth);
 
-    if (changed)
+    if (sliderChanged)
     {
         // Convert slider position back to actual value using power
         sliderFrac = Clamp(sliderFrac, 0.0f, 1.0f);
@@ -422,7 +532,7 @@ bool SliderFloatPower(const char* label, float& value, float min, float max, flo
         value = Clamp(value, min, max);
     }
 
-    return changed;
+    return typed || sliderChanged;
 }
 
 //======================================================================================================================
@@ -432,18 +542,27 @@ bool SliderInt(const char* label, int& value, int min, int max)
     float controlWidth = availWidth * kControlWidthFraction;
     float labelWidth = availWidth - controlWidth;
 
-    // Format label with value: "Label (value)"
-    char labelWithValue[256];
-    snprintf(labelWithValue, sizeof(labelWithValue), "%s (%d)", label, value);
+    char valueBuf[64];
+    snprintf(valueBuf, sizeof(valueBuf), "%d", value);
 
-    // Right-aligned label (includes value)
-    RenderRightAlignedLabel(labelWithValue, labelWidth);
+    ImGui::PushID(label);
+    float typedValue = 0.0f;
+    bool typed = RenderEditableValueLabel(label, valueBuf, labelWidth, &typedValue);
+    ImGui::PopID();
+
+    if (typed)
+    {
+        int newValue = (int)std::lround(typedValue);
+        if (newValue < min) newValue = min;
+        if (newValue > max) newValue = max;
+        value = newValue;
+    }
 
     // Convert to float for the slider behavior
     float floatValue = (float)value;
-    bool changed = CustomSliderBehavior(label, floatValue, (float)min, (float)max, controlWidth);
+    bool sliderChanged = CustomSliderBehavior(label, floatValue, (float)min, (float)max, controlWidth);
 
-    if (changed)
+    if (sliderChanged)
     {
         value = std::lround(floatValue);
         // Clamp to range
@@ -451,7 +570,7 @@ bool SliderInt(const char* label, int& value, int min, int max)
         if (value > max) value = max;
     }
 
-    return changed;
+    return typed || sliderChanged;
 }
 
 //======================================================================================================================
@@ -775,8 +894,10 @@ void Spacing()
 //======================================================================================================================
 void ResetFrameState()
 {
-    sSettingsBlockCounter = 0;
-    sSectionHeaderCounter = 0;
+    // SectionHeader/SectionHeaderColored/BeginSettingsBlock now derive their
+    // ID from the call site (source line) instead of a runtime counter, so
+    // there's nothing to reset here any more. Left in place as a hook for
+    // any future per-frame widget state, and so callers don't need to change.
 }
 
 } // namespace SettingsWidgets
