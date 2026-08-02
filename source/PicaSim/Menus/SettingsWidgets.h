@@ -10,20 +10,30 @@ class Texture;
 // These are simple helper functions for rendering settings controls
 namespace SettingsWidgets {
 
-    // Render a section header with colored background
-    void SectionHeader(const char* title);
-
-    // Render a section header with custom RGB background color (0-1 range)
-    // Text color automatically switches between light/dark for visibility
-    void SectionHeaderColored(const char* title, float r, float g, float b);
+    // --- Internal Impl functions -------------------------------------------
+    // These take an explicit callSiteId (the source line number, supplied by
+    // the macros below) instead of a runtime counter. That means a given
+    // block/header's ImGui ID depends only on *which line of code* called it,
+    // never on how many other things happened to render earlier in the same
+    // frame. A runtime counter looks equivalent on the surface but isn't:
+    // if any conditional content elsewhere on the same tab appears or
+    // disappears between frames (e.g. "advanced" toggled, PicaSim::IsCreated()
+    // flipping, a list growing), every counter-derived ID downstream shifts,
+    // which silently breaks anything that needs to recognize its own
+    // identity across multiple frames - notably the click-to-type value
+    // editor, which compares a remembered ID against the freshly computed one
+    // on every frame it's open. Line-based IDs don't have this problem.
+    // Call the macros (SectionHeader, SectionHeaderColored, BeginSettingsBlock)
+    // rather than these Impl functions directly.
+    void SectionHeaderImpl(const char* title, int callSiteId);
+    void SectionHeaderColoredImpl(const char* title, float r, float g, float b, int callSiteId);
+    bool BeginSettingsBlockImpl(int callSiteId);
 
     // Render an "uber section" header for parent sections containing sub-sections
     // Uses a distinct color to stand out from regular section headers
     void UberSectionHeader(const char* title);
 
-    // Begin/End a settings block with rounded background
-    // Returns false if the block should be skipped (for collapsible sections)
-    bool BeginSettingsBlock();
+    // End a settings block started with BeginSettingsBlock()
     void EndSettingsBlock();
 
     // Checkbox widget - returns true if value changed
@@ -85,5 +95,13 @@ namespace SettingsWidgets {
     void ResetFrameState();
 
 }
+
+// Call these like ordinary functions, e.g. SettingsWidgets::SectionHeader(title)
+// or SettingsWidgets::BeginSettingsBlock() - the macro fills in __LINE__ so
+// each call site gets a stable, frame-independent identity. See the comment
+// on the Impl functions above for why this matters.
+#define SectionHeader(title) SectionHeaderImpl(title, __LINE__)
+#define SectionHeaderColored(title, r, g, b) SectionHeaderColoredImpl(title, r, g, b, __LINE__)
+#define BeginSettingsBlock() BeginSettingsBlockImpl(__LINE__)
 
 #endif
