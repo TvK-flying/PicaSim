@@ -1220,6 +1220,7 @@ void SettingsMenu::RenderAeroplaneTab()
     // Smoke settings
     for (int i = 0; i < AeroplaneSettings::MAX_NUM_SMOKES_PER_PLANE; ++i)
     {
+        ImGui::PushID(i);
         AeroplaneSettings::SmokeSource& smoke = as.mSmokeSources[i];
         char sectionLabel[64];
         sprintf(sectionLabel, TXT(PS_SMOKESOURCE), i + 1);
@@ -1291,6 +1292,7 @@ void SettingsMenu::RenderAeroplaneTab()
             }
         }
         SettingsWidgets::EndSettingsBlock();
+        ImGui::PopID();
     }
 
     // Info section - show computed aeroplane properties
@@ -1679,6 +1681,7 @@ void SettingsMenu::RenderObjectsTab()
             // Per-object settings
             for (size_t iObject = 0; iObject != numObjects; ++iObject)
             {
+                ImGui::PushID((int)iObject);
                 ObjectsSettings::Box& box = os.mBoxes[iObject];
                 sprintf(txt, TXT(PS_OBJECTNUMBER), (int)iObject);
                 SettingsWidgets::SectionHeader(txt);
@@ -1716,6 +1719,7 @@ void SettingsMenu::RenderObjectsTab()
                     SettingsWidgets::Checkbox(TXT(PS_SHADOW), box.mShadow);
                 }
                 SettingsWidgets::EndSettingsBlock();
+                ImGui::PopID();
             }
         }
     }
@@ -2246,6 +2250,7 @@ void SettingsMenu::RenderJoystickTab()
     // Per-axis settings
     for (int i = 0; i < JoystickSettings::JOYSTICK_NUM_CONTROLS; ++i)
     {
+        ImGui::PushID(i);
         JoystickSettings::JoystickAnalogueOverride& j = js.mJoystickAnalogueOverrides[i];
 
         // Calculate current values
@@ -2299,6 +2304,7 @@ void SettingsMenu::RenderJoystickTab()
             SettingsWidgets::SliderFloat(TXT(PS_DEADZONE), j.mDeadZone, 0.0f, 0.5f);
         }
         SettingsWidgets::EndSettingsBlock();
+        ImGui::PopID();
     }
 
     // Per-button settings - button overrides use ButtonControl enum, not ControllerControls
@@ -2319,6 +2325,7 @@ void SettingsMenu::RenderJoystickTab()
     SettingsWidgets::SectionHeader(TXT(PS_BUTTONMAPPINGS));
     for (int i = 0; i < (int)JoystickSettings::JOYSTICK_NUM_BUTTONS; ++i)
     {
+        ImGui::PushID(i);
         JoystickSettings::JoystickButtonOverride& j = js.mJoystickButtonOverrides[i];
 
         float input = joystick.mButtons[i] / 128.0f;
@@ -2339,6 +2346,7 @@ void SettingsMenu::RenderJoystickTab()
             SettingsWidgets::Checkbox(TXT(PS_INVERT), j.mInvert);
         }
         SettingsWidgets::EndSettingsBlock();
+        ImGui::PopID();
     }
 }
 
