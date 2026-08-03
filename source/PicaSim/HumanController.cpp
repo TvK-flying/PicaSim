@@ -541,10 +541,11 @@ void HumanController::UpdateKeyboard(float deltaTime)
 //======================================================================================================================
 void HumanController::UpdateJoystick(float deltaTime)
 {
-    if (!mGameSettings.mJoystickSettings.mEnableJoystick || mGameSettings.mOptions.mFrameworkSettings.isIOS())
+    const JoystickSettings& js = mJoystickSettings ? *mJoystickSettings : mGameSettings.mJoystickSettings;
+
+    if (!js.mEnableJoystick || mGameSettings.mOptions.mFrameworkSettings.isIOS())
         return;
 
-    const JoystickSettings& js = mGameSettings.mJoystickSettings;
     const Options& options = mGameSettings.mOptions;
 
     JoystickData joystick;
