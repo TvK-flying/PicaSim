@@ -145,7 +145,8 @@ bool PicaSim::Init(GameSettings& gameSettings, LoadingScreenHelper* loadingScree
     if (kEnableSplitScreenTest && gamepadAvailable() && gamepadGetNumDevices() >= 2)
     {
         mInstance->mPlayer2Controller = std::make_unique<HumanController>(mInstance->mGameSettings);
-        mInstance->mPlayer2Controller->SetJoystickId(1);
+        mInstance->mPlayer2Controller->SetJoystickId(mInstance->mGameSettings.mOptions.mJoystickID2);
+        mInstance->mPlayer2Controller->SetJoystickSettings(&mInstance->mGameSettings.mJoystickSettings2);
         mInstance->mPlayer2Controller->SetOverlayYOffset(0.5f);
         mInstance->mPlayer2Aeroplane = std::make_unique<Aeroplane>(*mInstance->mPlayer2Controller);
         mInstance->mPlayer2Controller->SetAeroplane(mInstance->mPlayer2Aeroplane.get());
@@ -164,15 +165,17 @@ bool PicaSim::Init(GameSettings& gameSettings, LoadingScreenHelper* loadingScree
         &observerPosition,
         loadingScreen);
 
-    // Player 2 (split-screen test): same aeroplane type, spawned 10m to the
-    // side so it doesn't launch on top of player 1's. Note: only the initial
+    // Player 2 (split-screen test): own aeroplane settings (pick a
+    // different plane via the "Aeroplane 2" settings tab - defaults to the
+    // same default plane as player 1 until you do), spawned 10m to the side
+    // so it doesn't launch on top of player 1's. Note: only the initial
     // spawn is handled here - reset/respawn-after-crash for player 2 isn't
     // wired up yet, that's expected follow-up once this first test passes.
     if (mInstance->mPlayer2Aeroplane)
     {
         Vector3 player2Position = observerPosition + Vector3(10.0f, 0.0f, 0.0f);
         mInstance->mPlayer2Aeroplane->Init(
-            mInstance->mGameSettings.mAeroplaneSettings,
+            mInstance->mGameSettings.mAeroplaneSettings2,
             &player2Position,
             loadingScreen);
     }
@@ -643,6 +646,39 @@ void PicaSim::UpdateJoystickToggles(bool& joystickRelaunch, bool& joystickChange
 
 
 //======================================================================================================================
+bool PicaSim::CheckPlayer2Relaunch()
+{
+    // Player-2 version of the relaunch part of UpdateJoystickToggles, using
+    // player 2's own device id and JoystickSettings2 button mapping - fully
+    // independent from player 1's now.
+    const JoystickSettings& js2 = mGameSettings.mJoystickSettings2;
+    if (!js2.mEnableJoystick || mGameSettings.mOptions.mFrameworkSettings.isIOS())
+        return false;
+
+    JoystickData joystick;
+    if (S3E_RESULT_SUCCESS != GetJoystickStatus(joystick, mGameSettings.mOptions.mJoystickID2))
+        return false;
+
+    bool relaunch = false;
+    for (size_t i = 0 ; i != JoystickSettings::JOYSTICK_NUM_BUTTONS ; ++i)
+    {
+        const JoystickSettings::JoystickButtonOverride& j = js2.mJoystickButtonOverrides[i];
+        if (j.mControl != JoystickSettings::JoystickButtonOverride::CONTROL_BUTTON_RELAUNCH)
+            continue;
+        float buttonDown = joystick.mButtons[i] > 64 ? 1.0f : 0.0f;
+        bool buttonDownBool = (j.mInvert ? !buttonDown : buttonDown) != 0.0f;
+        if (mPrevJoystick2Relaunch != buttonDownBool)
+        {
+            if (buttonDownBool)
+                relaunch = true;
+            mPrevJoystick2Relaunch = buttonDownBool;
+        }
+    }
+    return relaunch;
+}
+
+
+//======================================================================================================================
 int PicaSim::ShowInGameDialog(float width, float height, const char* title, const char* text, const char* button0, const char* button1, const char* button2)
 {
     return ::ShowInGameDialog(width, height, title, text, button0, button1, button2);
@@ -659,7 +695,7 @@ PicaSim::UpdateResult PicaSim::Update(int64 deltaTimeMs)
 {
     UpdateJoystick(mGameSettings.mOptions.mJoystickID);
     if (mPlayer2Controller)
-        UpdateJoystick(1); // player 2's device id, set via SetJoystickId(1) in Create()
+        UpdateJoystick(mGameSettings.mOptions.mJoystickID2); // player 2's device id
 
     float deltaTime = deltaTimeMs * 0.001f;
 
@@ -938,6 +974,15 @@ PicaSim::UpdateResult PicaSim::Update(int64 deltaTimeMs)
         // Move/initialise the aeroplane so it's next to the observer
         mPlayerAeroplane->Launch(mInstance->mObserver->GetCameraTransform((void*) 0).GetTrans());
         mChallenge->Relaunched();
+    }
+
+    // Player 2 relaunch (split-screen test) - separate from player 1's,
+    // since it's a different aeroplane and (for now) only responds to its
+    // own joystick's relaunch button, not the relaunch overlay/keys above.
+    if (mPlayer2Aeroplane && CheckPlayer2Relaunch())
+    {
+        Vector3 launchPos = mInstance->mObserver->GetCameraTransform((void*) 0).GetTrans() + Vector3(10.0f, 0.0f, 0.0f);
+        mPlayer2Aeroplane->Launch(launchPos);
     }
 
     bool panorama = mGameSettings.mEnvironmentSettings.mTerrainSettings.mType == TerrainSettings::TYPE_PANORAMA;
