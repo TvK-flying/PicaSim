@@ -47,6 +47,7 @@ void InitStringsEN(const char** txt)
   txt[PS_OPTIONS1] = "Options 1";
   txt[PS_OPTIONS2] = "Options 2";
   txt[PS_AEROPLANE] = "Aeroplane";
+  txt[PS_AEROPLANE2] = "Aeroplane 2";
   txt[PS_SCENERY] = "Scenery";
   txt[PS_OBJECTS] = "Objects";
   txt[PS_OBJECTSSETTINGS] = "Objects settings";
@@ -54,6 +55,7 @@ void InitStringsEN(const char** txt)
   txt[PS_AICONTROLLERS] = "AI Controllers";
   txt[PS_CONTROLLER] = "Controller";
   txt[PS_JOYSTICK] = "Joystick";
+  txt[PS_JOYSTICK2] = "Joystick 2";
   txt[PS_LOAD] = "Load...";
   txt[PS_SAVE] = "Save...";
   txt[PS_DELETE] = "Delete...";
@@ -513,11 +515,6 @@ void InitStringsEN(const char** txt)
   txt[PS_EXPONENTIAL] = "Exponential";
   txt[PS_SPRING] = "Spring";
   txt[PS_USETHROTTLECURVE] = "Use custom throttle curve";
-  txt[PS_ENABLE4DMODE] = "Enable 4D mode (reverse thrust)";
-  txt[PS_VECTORMODE] = "Thrust vectoring";
-  txt[PS_VECTORMODE_NONE] = "No vector";
-  txt[PS_VECTORMODE_SINGLE] = "Single vector";
-  txt[PS_VECTORMODE_TWOAXIS] = "2 axis vector";
   txt[PS_THROTTLECURVE0] = "Curve height at 0%";
   txt[PS_THROTTLECURVE25] = "Curve height at 25%";
   txt[PS_THROTTLECURVE50] = "Curve height at 50%";
