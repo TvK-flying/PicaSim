@@ -20,10 +20,15 @@ public:
     // -1, meaning "use the shared GameSettings.mOptions.mJoystickID", which
     // is exactly the old single-player behaviour. Set this explicitly to
     // give a second (or third...) HumanController its own transmitter.
-    // Note: all HumanControllers currently share the same axis mapping/
-    // calibration (GameSettings.mJoystickSettings) - giving each player their
-    // own calibration is follow-up work, not needed to prove this part works.
     void SetJoystickId(int joystickId) {mJoystickId = joystickId;}
+
+    // Which calibration/button-mapping table to use for this controller's
+    // joystick input. Defaults to null, meaning "use the shared
+    // GameSettings.mJoystickSettings" (old single-player behaviour). Point
+    // this at a different JoystickSettings (e.g. GameSettings.mJoystickSettings2)
+    // to give a second player their own independent calibration - the object
+    // pointed to must outlive this HumanController.
+    void SetJoystickSettings(const JoystickSettings* js) {mJoystickSettings = js;}
 
     // Shifts this controller's on-screen stick overlay up/down as a fraction
     // of screen height, purely so two controllers' overlays don't render
@@ -55,6 +60,7 @@ private:
     GameSettings& mGameSettings;
     const class Aeroplane* mAeroplane;
     int mJoystickId = -1; // -1 = use the shared GameSettings.mOptions.mJoystickID
+    const JoystickSettings* mJoystickSettings = nullptr; // null = use the shared GameSettings.mJoystickSettings
 
     float mOutputControls[MAX_CHANNELS];
     float mInputControls[ControllerSettings::CONTROLLER_NUM_CONTROLS];
