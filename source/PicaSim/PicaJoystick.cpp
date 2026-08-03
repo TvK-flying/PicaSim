@@ -4,7 +4,12 @@
 #include "../Platform/S3ECompat.h"
 #include <cstring>
 
-static JoystickData sJoystickData;
+// Was a single global JoystickData that every id read from, regardless of
+// which id was asked for - meaning only one physical device could ever be
+// tracked at a time, no matter how many were plugged in. Now one slot per
+// device id, so two (or more) joysticks can be polled and read independently
+// in the same frame - this is what split-screen's two transmitters need.
+static JoystickData sJoystickData[MAX_JOYSTICK_DEVICES];
 
 //======================================================================================================================
 JoystickData::JoystickData() 
@@ -26,7 +31,10 @@ s3eResult GetJoystickStatus(JoystickData& joystick, int id)
     if (!JoystickAvailable())
         return S3E_RESULT_ERROR;
 
-    joystick = sJoystickData;
+    if (id < 0 || id >= MAX_JOYSTICK_DEVICES)
+        return S3E_RESULT_ERROR;
+
+    joystick = sJoystickData[id];
 
     return S3E_RESULT_SUCCESS;
 }
@@ -44,21 +52,25 @@ void UpdateJoystick(int id)
 
     gamepadUpdate();
 
-    sJoystickData = JoystickData();
+    if (id < 0 || id >= MAX_JOYSTICK_DEVICES)
+        return;
+
+    JoystickData& data = sJoystickData[id];
+    data = JoystickData();
     if (JoystickAvailable() && id >= 0 && id < (int) gamepadGetNumDevices())
     {
         TRACE_FILE_IF(FRAME_2) TRACE("Copying gamepad results");
         // Map [-4096,4096] to [0,65535]
         uint32 numAxes = gamepadGetNumAxes(id);
         for (uint32 i = 0 ; i < numAxes && i < JoystickData::MAX_ANALOGUEINPUTS ; ++i)
-            sJoystickData.mAnalogueInputs[i] = (long) ((4096 + gamepadGetAxis(id, i)) * 65535.0f/8192.0f);
+            data.mAnalogueInputs[i] = (long) ((4096 + gamepadGetAxis(id, i)) * 65535.0f/8192.0f);
 
         if (gamepadIsPointOfViewAvailable(id))
-            sJoystickData.mPOVDirections[0] = gamepadGetPointOfViewAngle(id);
+            data.mPOVDirections[0] = gamepadGetPointOfViewAngle(id);
   
         uint32 buttons = gamepadGetButtons(id);
         for (uint32_t i = 0 ; i != JoystickData::MAX_BUTTONS ; ++i)
-            sJoystickData.mButtons[i] = (buttons & 1 << i) ? 128 : 0;
+            data.mButtons[i] = (buttons & 1 << i) ? 128 : 0;
 
 #if 0
         char txt[64];
@@ -66,11 +78,11 @@ void UpdateJoystick(int id)
         IwGxPrintString(10, 10, txt);
 #endif
 
-        sprintf(sJoystickData.mName, "Joystick %d", id);
+        sprintf(data.mName, "Joystick %d", id);
     }
     else
     {
-        sprintf(sJoystickData.mName, "Joystick %d unavailable", id);
+        sprintf(data.mName, "Joystick %d unavailable", id);
         TRACE_FILE_IF(FRAME_2) TRACE("No gamepad available");
     }
 }
