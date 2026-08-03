@@ -548,7 +548,8 @@ void HumanController::UpdateJoystick(float deltaTime)
     const Options& options = mGameSettings.mOptions;
 
     JoystickData joystick;
-    if (S3E_RESULT_SUCCESS != GetJoystickStatus(joystick, mGameSettings.mOptions.mJoystickID))
+    int joystickId = (mJoystickId >= 0) ? mJoystickId : mGameSettings.mOptions.mJoystickID;
+    if (S3E_RESULT_SUCCESS != GetJoystickStatus(joystick, joystickId))
         return;
 
     //TRACE_FILE_IF(ONCE_1) TRACE("left = %d, %d Right = %d, %d", joystick.sThumbLX, joystick.sThumbLY, joystick.sThumbRX, joystick.sThumbRY);
@@ -661,76 +662,28 @@ void HumanController::EntityUpdate(float deltaTime, int entityLevel)
 
     for (size_t i = 0 ; i != ControllerSettings::CONTROLLER_NUM_CONTROLS ; ++i)
     {
-        // 4D mode needs the full -1..1 range (reverse/neutral/forward), so it
-        // deliberately skips the positive/negative clamp below - a clamp and 4D
-        // mode enabled together would be contradictory, and 4D mode wins.
-        if (!controlSettings[i].mEnable4DMode)
-        {
-            if (controlSettings[i].mClamp == ControllerSettings::CONTROL_CLAMP_POSITIVE)
-                mProcessedInputControls[i] = ClampToRange(mProcessedInputControls[i], 0.0f, 1.0f);
-            else if (controlSettings[i].mClamp == ControllerSettings::CONTROL_CLAMP_NEGATIVE)
-                mProcessedInputControls[i] = ClampToRange(mProcessedInputControls[i], -1.0f, 0.0f);
-        }
+        if (controlSettings[i].mClamp == ControllerSettings::CONTROL_CLAMP_POSITIVE)
+            mProcessedInputControls[i] = ClampToRange(mProcessedInputControls[i], 0.0f, 1.0f);
+        else if (controlSettings[i].mClamp == ControllerSettings::CONTROL_CLAMP_NEGATIVE)
+            mProcessedInputControls[i] = ClampToRange(mProcessedInputControls[i], -1.0f, 0.0f);
 
         // Process them
-        if (controlSettings[i].mEnable4DMode)
+        if (controlSettings[i].mUseThrottleCurve)
         {
-            // "4D" mode: reinterpret the full -1..1 stick range as reverse/neutral/
-            // forward rather than the usual 0%-100% throttle sweep. 0% stick (-1
-            // raw) -> -1.0 (full reverse), 50% stick (0 raw) -> 0.0 (neutral),
-            // 100% stick (+1 raw) -> +1.0 (full forward). Since the raw input is
-            // already -1..1 across the stick's full travel, this mapping is just
-            // the identity - the real effect of this toggle is that it takes
-            // priority over mUseThrottleCurve/mExponential below, so the control's
-            // sign is preserved instead of being curved/exponentiated or clamped
-            // away, and (below) that mScale/mTrim are skipped so nothing shifts
-            // this mapping afterward. PropellerEngine.cpp and JetEngine.cpp clamp
-            // to the full -1..1 range and apply curve/exponential to the magnitude
-            // only, so a negative value here correctly produces reverse thrust.
-            float normalisedPosition = (mProcessedInputControls[i] + 1.0f) * 0.5f;   // 0..1
-            float raw = (normalisedPosition - 0.5f) * 2.0f;                         // -1..1: 0%->-1, 50%->0, 100%->+1
-
-            // Small deadband around stick-center so it's easy to land exactly on
-            // motor-off, without needing to touch the throttle curve. Beyond the
-            // deadband, the remaining travel is rescaled so full reverse/forward
-            // are still reachable at the stick's extremes.
-            const float deadband = 0.10f;
-            if (fabsf(raw) < deadband)
-                mProcessedInputControls[i] = 0.0f;
+            // 5-point custom curve (0/25/50/75/100% stick position -> user-set output height),
+            // linearly interpolated between points. Sign is preserved so reversed/braking
+            // setups still work.
+            if (mProcessedInputControls[i] >= 0.0f)
+                mProcessedInputControls[i] = controlSettings[i].EvaluateThrottleCurve(mProcessedInputControls[i]);
             else
-                mProcessedInputControls[i] = (raw - (raw > 0.0f ? deadband : -deadband)) / (1.0f - deadband);
-        }
-        else if (controlSettings[i].mUseThrottleCurve)
-        {
-            // Throttle-type controls span their whole travel across the full -1..1
-            // input range (-1 = 0% throttle, +1 = 100% throttle) - unlike a centred
-            // stick, they are NOT symmetric about zero. So remap the full -1..1 range
-            // to a normalised 0..1 stick position, evaluate the 5-point curve
-            // (0/25/50/75/100% -> user-set output height) there, then remap the 0..1
-            // result back to -1..1 to stay consistent with mScale/mTrim below.
-            float normalisedPosition = (mProcessedInputControls[i] + 1.0f) * 0.5f;
-            float curveHeight = controlSettings[i].EvaluateThrottleCurve(normalisedPosition);
-            mProcessedInputControls[i] = curveHeight * 2.0f - 1.0f;
-            // DIAGNOSTIC: uncomment to compare the raw input against the post-curve value
-            // if (i == ControllerSettings::CONTROLLER_STICK_SPEED)
-            //     TRACE("ThrottleCurve alt=%d raw=%.2f normPos=%.2f curveHeight=%.2f out=%.2f",
-            //         mGameSettings.mControllerSettings.mCurrentAltSetting, mInputControls[i], normalisedPosition, curveHeight, mProcessedInputControls[i]);
+                mProcessedInputControls[i] = -controlSettings[i].EvaluateThrottleCurve(-mProcessedInputControls[i]);
         }
         else if (mProcessedInputControls[i] >= 0.0f)
             mProcessedInputControls[i] = powf(mProcessedInputControls[i], controlSettings[i].mExponential);
         else
             mProcessedInputControls[i] = -powf(-mProcessedInputControls[i], controlSettings[i].mExponential);
-        // 4D mode already produces a complete, final -1..1 reverse/neutral/forward
-        // mapping above. mScale/mTrim are tuned for the old one-sided throttle
-        // convention (e.g. mScale=2, mTrim=-1 on the Speed Stick) and were never
-        // designed to sit on top of that mapping - applying them here shifts the
-        // whole range (e.g. center stick would read -1.0 "full reverse" instead of
-        // 0.0 "neutral"), so skip them entirely when 4D mode is enabled.
-        if (!controlSettings[i].mEnable4DMode)
-        {
-            mProcessedInputControls[i] *= controlSettings[i].mScale;
-            mProcessedInputControls[i] += controlSettings[i].mTrim;
-        }
+        mProcessedInputControls[i] *= controlSettings[i].mScale;
+        mProcessedInputControls[i] += controlSettings[i].mTrim;
     }
 
     for (size_t i = 0 ; i != MAX_CHANNELS ; ++i)
@@ -1012,26 +965,4 @@ float HumanController::GetInputControl(int control) const
     IwAssert(ROWLHOUSE, control >= 0);
     IwAssert(ROWLHOUSE, control < ControllerSettings::CONTROLLER_NUM_CONTROLS);
     return mInputControls[control];
-}
-
-//======================================================================================================================
-int HumanController::GetVectorMode() const
-{
-    // Vectoring is only meaningful once 4D mode is actually enabled - it's set
-    // on the Speed Stick control alongside mEnable4DMode.
-    const ControllerSettings::ControlSetting* controlSettings =
-        mGameSettings.mControllerSettings.GetControlSettings();
-    const ControllerSettings::ControlSetting& speedSetting =
-        controlSettings[ControllerSettings::CONTROLLER_STICK_SPEED];
-    if (!speedSetting.mEnable4DMode)
-        return ControllerSettings::VECTOR_MODE_NONE;
-    return speedSetting.mVectorMode;
-}
-
-//======================================================================================================================
-bool HumanController::GetEnable4DMode() const
-{
-    const ControllerSettings::ControlSetting* controlSettings =
-        mGameSettings.mControllerSettings.GetControlSettings();
-    return controlSettings[ControllerSettings::CONTROLLER_STICK_SPEED].mEnable4DMode;
 }
