@@ -265,6 +265,7 @@ Options::Options() :
     mControllerHorOffset(0.25f),
     mControllerVerOffset(0.5f),
     mJoystickID(0),
+    mJoystickID2(1),
     mControllerStaggered(false),
     mControllerStyle(CONTROLLER_STYLE_CROSS),
     mControllerAlpha(255),
@@ -403,6 +404,7 @@ bool Options::WriteToDoc(TiXmlDocument& doc) const
     WRITE_DOUBLE_ATTRIBUTE(mControllerHorOffset);
     WRITE_DOUBLE_ATTRIBUTE(mControllerVerOffset);
     WRITE_ATTRIBUTE(mJoystickID);
+    WRITE_ATTRIBUTE(mJoystickID2);
     WRITE_ATTRIBUTE(mControllerStaggered);
     WRITE_ATTRIBUTE(mControllerStyle);
     WRITE_ATTRIBUTE(mControllerAlpha);
@@ -556,6 +558,7 @@ bool Options::ReadFromDoc(TiXmlDocument& doc, bool readAll)
     READ_ATTRIBUTE(mControllerHorOffset);
     READ_ATTRIBUTE(mControllerVerOffset);
     READ_ATTRIBUTE(mJoystickID);
+    READ_ATTRIBUTE(mJoystickID2);
     READ_ATTRIBUTE(mControllerStaggered);
     READ_ENUM_ATTRIBUTE(mControllerStyle);
     READ_ATTRIBUTE(mControllerAlpha);
@@ -2568,8 +2571,6 @@ bool ControllerSettings::ControlSetting::WriteToDoc(TiXmlDocument& doc, int i, i
         sprintf(curveAttrName, "mThrottleCurve_%d", k);
         element->SetDoubleAttribute(curveAttrName, mThrottleCurve[k]);
     }
-    WRITE_ATTRIBUTE(mEnable4DMode);
-    WRITE_ATTRIBUTE(mVectorMode);
     return true;
 }
 
@@ -2599,13 +2600,11 @@ bool ControllerSettings::ControlSetting::ReadFromDoc(TiXmlDocument& doc, int i, 
         if (element->QueryDoubleAttribute(curveAttrName, &curveValue) == TIXML_SUCCESS)
             mThrottleCurve[k] = (float) curveValue;
     }
-    READ_ATTRIBUTE(mEnable4DMode);
-    READ_ENUM_ATTRIBUTE(mVectorMode);
     return true;
 }
 
 //======================================================================================================================
-float EvaluateFivePointCurve(const float points[NUM_THROTTLE_CURVE_POINTS], float x)
+float ControllerSettings::ControlSetting::EvaluateThrottleCurve(float x) const
 {
     if (x < 0.0f)
         x = 0.0f;
@@ -2619,7 +2618,7 @@ float EvaluateFivePointCurve(const float points[NUM_THROTTLE_CURVE_POINTS], floa
         segment = numSegments - 1;
     float frac = scaledX - segment;
 
-    return points[segment] + frac * (points[segment + 1] - points[segment]);
+    return mThrottleCurve[segment] + frac * (mThrottleCurve[segment + 1] - mThrottleCurve[segment]);
 }
 
 //======================================================================================================================
