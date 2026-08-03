@@ -12,17 +12,6 @@
 
 bool GetFileChecksum(uint32& checksum, const char* file);
 
-// Shared by ControllerSettings::ControlSetting and any per-engine throttle curve
-// (e.g. Engine/PropellerEngine/JetEngine) so every 5-point curve in the game uses
-// identical interpolation math.
-static const int NUM_THROTTLE_CURVE_POINTS = 5;
-
-// Evaluates a 5-point curve. x is the normalised input position in [0,1] (values
-// outside are clamped). points[0..4] are the output heights (0..1) at fixed input
-// positions 0%, 25%, 50%, 75% and 100%, linearly interpolated between the two
-// points either side of x.
-float EvaluateFivePointCurve(const float points[NUM_THROTTLE_CURVE_POINTS], float x);
-
 //======================================================================================================================
 struct SettingsChangeActions
 {
@@ -94,21 +83,12 @@ struct ControllerSettings : public Settings
         CONTROL_CLAMP_MAX
     };
 
-    // 4D thrust vectoring setup - controls how much pitch/yaw authority is kept
-    // while flying backward. Mutually exclusive; only meaningful when
-    // mEnable4DMode is set on this control.
-    enum VectorMode
-    {
-        VECTOR_MODE_NONE,      // Neither axis vectored: pitch and yaw both 50% while flying backward
-        VECTOR_MODE_SINGLE,    // Single axis (yaw) vectored: pitch 50%, yaw 100% while flying backward
-        VECTOR_MODE_TWOAXIS,   // Both axes vectored: pitch and yaw both 100% while flying backward
-        VECTOR_MODE_MAX
-    };
-
     struct ControlSetting
     {
+        static const int NUM_THROTTLE_CURVE_POINTS = 5;
+
         // Note that each control input has a normal range of -1 to +1
-        ControlSetting() : mAutoCentre(true), mClamp(CONTROL_CLAMP_NONE), mScale(1.0f), mExponential(1.0f), mTrim(0.0f), mUseThrottleCurve(false), mEnable4DMode(false), mVectorMode(VECTOR_MODE_NONE)
+        ControlSetting() : mAutoCentre(true), mClamp(CONTROL_CLAMP_NONE), mScale(1.0f), mExponential(1.0f), mTrim(0.0f), mUseThrottleCurve(false)
         {
             // Default curve is a straight line (0%->0%, 25%->25%, ... 100%->100%)
             for (int i = 0 ; i != NUM_THROTTLE_CURVE_POINTS ; ++i)
@@ -121,7 +101,7 @@ struct ControllerSettings : public Settings
         // range 0..1. The curve is defined by mThrottleCurve[0..4], the output heights
         // (0..1) at fixed input positions 0%, 25%, 50%, 75% and 100%, linearly
         // interpolated between the points either side of x.
-        float EvaluateThrottleCurve(float x) const {return EvaluateFivePointCurve(mThrottleCurve, x);}
+        float EvaluateThrottleCurve(float x) const;
 
         bool mAutoCentre;
         ControlClamp mClamp;
@@ -133,20 +113,6 @@ struct ControllerSettings : public Settings
         // instead of mExponential to shape this control's response.
         bool mUseThrottleCurve;
         float mThrottleCurve[NUM_THROTTLE_CURVE_POINTS];
-
-        // "4D" mode: reinterprets this control's full -1..1 stick range as
-        // reverse/neutral/forward instead of the usual 0%..100% throttle sweep.
-        // 0% stick -> -1.0 (full reverse), 50% stick -> 0.0 (neutral), 100% stick
-        // -> +1.0 (full forward). Takes priority over mUseThrottleCurve/
-        // mExponential when enabled (see HumanController::EntityUpdate). Note this
-        // only affects the CONTROLLER'S output value; whether that negative value
-        // actually produces reverse thrust depends on the engine physics reading
-        // it (see caveat in HumanController.cpp).
-        bool mEnable4DMode;
-
-        // Which axes stay "vectored" (keep authority) while flying backward in 4D
-        // mode - see VectorMode above. Only meaningful when mEnable4DMode is true.
-        VectorMode mVectorMode;
     };
 
     struct Mix
@@ -398,6 +364,9 @@ struct Options : public Settings
     float mControllerTrimSize;
 
     int mJoystickID;
+    // Player 2's device id (split-screen test) - separate from mJoystickID
+    // so each player's "which physical joystick" choice is independent.
+    int mJoystickID2;
 
     float mGroundViewTerrainLOD;
     float mAeroplaneViewTerrainLOD;
@@ -1111,12 +1080,24 @@ struct GameSettings : public Settings
 
     Options             mOptions;
     AeroplaneSettings   mAeroplaneSettings;
+    // Player 2's aeroplane (split-screen test). Deliberately NOT included in
+    // GameSettings::WriteToDoc/ReadFromDoc below - it's loaded/saved via its
+    // own file, same mechanism as mAeroplaneSettings, just a separate file
+    // so the two don't collide (AeroplaneSettings::WriteToDoc hardcodes its
+    // own XML element name, so two instances can't safely share one doc).
+    AeroplaneSettings   mAeroplaneSettings2;
     EnvironmentSettings mEnvironmentSettings;
     ObjectsSettings     mObjectsSettings;
     LightingSettings mLightingSettings;
     AIControllersSettings mAIControllersSettings;
     ControllerSettings mControllerSettings;
     JoystickSettings mJoystickSettings;
+    // Player 2's joystick calibration/button mapping (split-screen test).
+    // Deliberately NOT included in WriteToDoc/ReadFromDoc below, same reason
+    // as mAeroplaneSettings2 - JoystickSettings::WriteToDoc hardcodes its own
+    // XML element name, so two instances can't share one doc. Loaded/saved
+    // via its own file instead, from the "Player 2" section of the Joystick tab.
+    JoystickSettings mJoystickSettings2;
     ChallengeSettings mChallengeSettings;
 
     Statistics mStatistics;
