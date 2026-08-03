@@ -897,6 +897,37 @@ SelectResult SelectAndLoadAeroplane(GameSettings& gameSettings, const char* titl
 }
 
 //======================================================================================================================
+SelectResult SelectAndLoadAeroplane2(GameSettings& gameSettings, const char* title, const char* cancelButtonText, const char* altButtonText)
+{
+    TRACE_FUNCTION_ONLY(ONCE_1);
+    std::string file;
+    Language language = gameSettings.mOptions.mLanguage;
+    const char* aeroplaneTabTitles[] = {TXT(PS_ALL), TXT(PS_GLIDERS), TXT(PS_POWERED), TXT(PS_USER)};
+    std::string userPath = Platform::GetUserSettingsPath() + "Aeroplane";
+    FileMenuResult result = FileMenuLoad(
+        file, gameSettings,
+        "SystemSettings/Aeroplane", userPath.c_str(), ".xml",
+        title, aeroplaneTabTitles, 4,
+        cancelButtonText, altButtonText, FILEMENUTYPE_AEROPLANE);
+    if (!file.empty() && result == FILEMENURESULT_SELECTED)
+    {
+        TRACE_FILE_IF(ONCE_1) TRACE("Loading Aeroplane 2 settings %s", file.c_str());
+        bool loadResult = gameSettings.mAeroplaneSettings2.LoadFromFile(file);
+        IwAssert(ROWLHOUSE, loadResult);
+        TRACE_FILE_IF(ONCE_1) TRACE(" %s", loadResult ? "success" : "failed");
+        return SELECTRESULT_SELECTED;
+    }
+    else if (result == FILEMENURESULT_ALT)
+    {
+        return SELECTRESULT_SELECTED;
+    }
+    else
+    {
+        return SELECTRESULT_CANCELLED;
+    }
+}
+
+//======================================================================================================================
 SelectResult SelectAndLoadEnvironment(GameSettings& gameSettings, const char* title, const char* cancelButtonText, const char* altButtonText)
 {
     TRACE_FUNCTION_ONLY(ONCE_1);
