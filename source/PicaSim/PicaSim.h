@@ -132,6 +132,11 @@ private:
     void HandleJoystickToggle(const JoystickSettings::JoystickButtonOverride& j, float buttonDown,
         bool& joystickRelaunch, bool& joystickChangeView, bool& joystickPausePlay);
 
+    // Minimal player-2 equivalent of UpdateJoystickToggles - only checks for
+    // the relaunch button on device 1, since that's what crash respawn needs.
+    // Doesn't handle rates/camera/pause/button0-2 for player 2 yet.
+    bool CheckPlayer2Relaunch();
+
     void ShowHelpOverlays();
 
     int ShowInGameDialog(float width, float height, const char* title, const char* text, const char* button0, const char* button1 = 0, const char* button2 = 0);
@@ -203,6 +208,12 @@ private:
     bool mPrevJoystickButton0Cycle;
     bool mPrevJoystickButton1Cycle;
     bool mPrevJoystickButton2Cycle;
+
+    // Player 2 (split-screen test) - only relaunch is wired up for now,
+    // since that's what's needed for crash respawn. Uses the same button
+    // mapping table as player 1 for now (see the per-player joystick
+    // settings note in HumanController.h).
+    bool mPrevJoystick2Relaunch = false;
 };
 
 #endif
