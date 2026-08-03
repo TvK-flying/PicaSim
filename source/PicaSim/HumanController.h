@@ -16,6 +16,20 @@ public:
 
     void SetAeroplane(const class Aeroplane* aeroplane) {mAeroplane = aeroplane;}
 
+    // Which physical joystick device this controller reads from. Defaults to
+    // -1, meaning "use the shared GameSettings.mOptions.mJoystickID", which
+    // is exactly the old single-player behaviour. Set this explicitly to
+    // give a second (or third...) HumanController its own transmitter.
+    // Note: all HumanControllers currently share the same axis mapping/
+    // calibration (GameSettings.mJoystickSettings) - giving each player their
+    // own calibration is follow-up work, not needed to prove this part works.
+    void SetJoystickId(int joystickId) {mJoystickId = joystickId;}
+
+    // Shifts this controller's on-screen stick overlay up/down as a fraction
+    // of screen height, purely so two controllers' overlays don't render
+    // exactly on top of each other before split-screen rendering exists.
+    void SetOverlayYOffset(float offset) {mLeftControllerPosY += offset; mRightControllerPosY += offset;}
+
     void EntityUpdate(float deltaTime, int entityLevel) OVERRIDE;
 
     float GetControl(Channel channel) const OVERRIDE;
@@ -24,9 +38,6 @@ public:
     float GetInputControl(int control) const OVERRIDE;
 
     float GetElevatorTrim() const OVERRIDE {return mElevatorTrim;}
-
-    int GetVectorMode() const OVERRIDE;
-    bool GetEnable4DMode() const OVERRIDE;
 
     void RenderOverlayUpdate(int renderLevel, DisplayConfig& displayConfig) OVERRIDE;
 
@@ -43,6 +54,7 @@ private:
 
     GameSettings& mGameSettings;
     const class Aeroplane* mAeroplane;
+    int mJoystickId = -1; // -1 = use the shared GameSettings.mOptions.mJoystickID
 
     float mOutputControls[MAX_CHANNELS];
     float mInputControls[ControllerSettings::CONTROLLER_NUM_CONTROLS];
