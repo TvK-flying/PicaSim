@@ -135,6 +135,23 @@ bool PicaSim::Init(GameSettings& gameSettings, LoadingScreenHelper* loadingScree
     mInstance->mCameraAeroplaneIndex = 0;
     mInstance->mCameraAeroplanes.push_back(mInstance->mPlayerAeroplane.get());
 
+    // Phase 1 split-screen test: if there's a second physical joystick
+    // plugged in, spin up a second player controller + aeroplane bound to
+    // it. No second viewport yet (that's Phase 2) - this just proves two
+    // independent transmitters can each drive their own aeroplane in the
+    // same world at once. Added to mCameraAeroplanes so you can cycle the
+    // existing camera to it and watch it respond to the second joystick.
+    static const bool kEnableSplitScreenTest = true;
+    if (kEnableSplitScreenTest && gamepadAvailable() && gamepadGetNumDevices() >= 2)
+    {
+        mInstance->mPlayer2Controller = std::make_unique<HumanController>(mInstance->mGameSettings);
+        mInstance->mPlayer2Controller->SetJoystickId(1);
+        mInstance->mPlayer2Controller->SetOverlayYOffset(0.5f);
+        mInstance->mPlayer2Aeroplane = std::make_unique<Aeroplane>(*mInstance->mPlayer2Controller);
+        mInstance->mPlayer2Controller->SetAeroplane(mInstance->mPlayer2Aeroplane.get());
+        mInstance->mCameraAeroplanes.push_back(mInstance->mPlayer2Aeroplane.get());
+    }
+
     // Create an observer
     mInstance->mObserver = std::make_unique<Observer>();
 //  mInstance->mObserver->Init(Environment::GetInstance().GetObservationPoint(), aeroplane);
@@ -146,6 +163,19 @@ bool PicaSim::Init(GameSettings& gameSettings, LoadingScreenHelper* loadingScree
         mInstance->mGameSettings.mAeroplaneSettings,
         &observerPosition,
         loadingScreen);
+
+    // Player 2 (split-screen test): same aeroplane type, spawned 10m to the
+    // side so it doesn't launch on top of player 1's. Note: only the initial
+    // spawn is handled here - reset/respawn-after-crash for player 2 isn't
+    // wired up yet, that's expected follow-up once this first test passes.
+    if (mInstance->mPlayer2Aeroplane)
+    {
+        Vector3 player2Position = observerPosition + Vector3(10.0f, 0.0f, 0.0f);
+        mInstance->mPlayer2Aeroplane->Init(
+            mInstance->mGameSettings.mAeroplaneSettings,
+            &player2Position,
+            loadingScreen);
+    }
 
     // Create the camera & viewport
     // Configure the first camera to fly with the aeroplane
@@ -261,6 +291,15 @@ void PicaSim::Terminate()
         if (mInstance->mPlayerController)
         {
             mInstance->mPlayerController.reset();
+        }
+        if (mInstance->mPlayer2Aeroplane)
+        {
+            mInstance->mPlayer2Aeroplane->Terminate();
+            mInstance->mPlayer2Aeroplane.reset();
+        }
+        if (mInstance->mPlayer2Controller)
+        {
+            mInstance->mPlayer2Controller.reset();
         }
         if (mInstance->mObserver)
         {
@@ -619,6 +658,8 @@ void PicaSim::ShowHelpOverlays()
 PicaSim::UpdateResult PicaSim::Update(int64 deltaTimeMs)
 {
     UpdateJoystick(mGameSettings.mOptions.mJoystickID);
+    if (mPlayer2Controller)
+        UpdateJoystick(1); // player 2's device id, set via SetJoystickId(1) in Create()
 
     float deltaTime = deltaTimeMs * 0.001f;
 
