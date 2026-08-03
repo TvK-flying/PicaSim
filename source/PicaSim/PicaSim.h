@@ -84,6 +84,13 @@ public:
     Aeroplane* GetPlayerAeroplane() {return mPlayerAeroplane.get();}
     const Aeroplane* GetPlayerAeroplane() const {return mPlayerAeroplane.get();}
 
+    // Second local player, for split-screen testing. Null unless a second
+    // player controller was actually created (see kEnableSplitScreenTest in
+    // PicaSim.cpp) - always check for null before use, same as any optional
+    // pointer, since single-player and non-test builds never create this.
+    Aeroplane* GetPlayer2Aeroplane() {return mPlayer2Aeroplane.get();}
+    const Aeroplane* GetPlayer2Aeroplane() const {return mPlayer2Aeroplane.get();}
+
     /// This returns the unclamped total timestep delta
     float GetCurrentUpdateDeltaTime() const {return mCurrentDeltaTime;}
 
@@ -140,6 +147,14 @@ private:
 
     std::unique_ptr<Aeroplane> mPlayerAeroplane;
     std::unique_ptr<HumanController> mPlayerController;
+
+    // Second local player, for split-screen testing (Phase 1: input/
+    // simulation only, no second viewport yet). Only created when
+    // kEnableSplitScreenTest is true and a second joystick is present -
+    // see PicaSim::Create(). Both stay null otherwise, so nothing about
+    // single-player changes.
+    std::unique_ptr<Aeroplane> mPlayer2Aeroplane;
+    std::unique_ptr<HumanController> mPlayer2Controller;
 
     Aeroplanes mAeroplanes;
     Aeroplanes mCameraAeroplanes;
