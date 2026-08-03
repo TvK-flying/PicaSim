@@ -83,6 +83,13 @@ SelectResult SelectAeroplane(std::string& file, GameSettings& gameSettings, cons
     const char* cancelButtonText, const char* altButtonText, IncludeCallback* includeCallback = 0);
 SelectResult SelectAndLoadAeroplane(GameSettings& gameSettings, const char* title,
     const char* cancelButtonText, const char* altButtonText);
+// Player 2 (split-screen test) version - loads into gameSettings.mAeroplaneSettings2
+// instead of mAeroplaneSettings. Deliberately skips the "preferred controller"
+// auto-load that SelectAndLoadAeroplane does, since ControllerSettings is still
+// shared between both players - auto-swapping it from a player 2 aeroplane pick
+// would affect player 1 too.
+SelectResult SelectAndLoadAeroplane2(GameSettings& gameSettings, const char* title,
+    const char* cancelButtonText, const char* altButtonText);
 SelectResult SelectAndLoadEnvironment(GameSettings& gameSettings, const char* title,
     const char* cancelButtonText, const char* altButtonText);
 ScenarioResult SelectScenario(GameSettings& gameSettings, const char* title,
