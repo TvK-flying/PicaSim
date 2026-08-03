@@ -10,6 +10,10 @@ struct JoystickData
     char mName[512];
 };
 
+// Maximum number of physical joystick/transmitter devices that can be
+// tracked at once. 2 is all split-screen needs; a few spares cost nothing.
+enum {MAX_JOYSTICK_DEVICES = 4};
+
 bool JoystickAvailable();
 
 s3eResult GetJoystickStatus(JoystickData& joystick, int id);
