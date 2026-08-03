@@ -80,9 +80,17 @@ enum SettingsStatus
     SETTINGS_LOAD_JOYSTICK,
     SETTINGS_SAVE_JOYSTICK,
     SETTINGS_DELETE_JOYSTICK,
+    // Player 2 (split-screen test)
+    SETTINGS_LOAD_JOYSTICK2,
+    SETTINGS_SAVE_JOYSTICK2,
+    SETTINGS_DELETE_JOYSTICK2,
     SETTINGS_LOAD_AEROPLANE,
     SETTINGS_SAVE_AEROPLANE,
     SETTINGS_DELETE_AEROPLANE,
+    // Player 2 (split-screen test)
+    SETTINGS_LOAD_AEROPLANE2,
+    SETTINGS_SAVE_AEROPLANE2,
+    SETTINGS_DELETE_AEROPLANE2,
     SETTINGS_LOAD_AICONTROLLERS,
     SETTINGS_SAVE_AICONTROLLERS,
     SETTINGS_DELETE_AICONTROLLERS,
@@ -97,6 +105,7 @@ enum SettingsStatus
     SETTINGS_DELETE_LOCAL_HIGHSCORES,
     SETTINGS_RESET_OBJECTS,
     SETTINGS_CLEAR_JOYSTICK,
+    SETTINGS_CLEAR_JOYSTICK2,
     SETTINGS_CALIBRATE_JOYSTICK,
     SETTINGS_CLEARALLSAVEDSETTINGSANDEXIT
 };
@@ -107,12 +116,14 @@ enum TabPanelEnum
     TAB_OPTIONS1,
     TAB_OPTIONS2,
     TAB_AEROPLANE,
+    TAB_AEROPLANE2,
     TAB_SCENERY,
     TAB_OBJECTS,
     TAB_LIGHTING,
     TAB_AICONTROLLERS,
     TAB_CONTROLLER,
     TAB_JOYSTICK,
+    TAB_JOYSTICK2,
     TAB_NUM_TABS
 };
 
@@ -141,13 +152,13 @@ private:
     // Tab rendering functions
     void RenderOptions1Tab();
     void RenderOptions2Tab();
-    void RenderAeroplaneTab();
+    void RenderAeroplaneTab(AeroplaneSettings& as, TabPanelEnum tab, SettingsStatus loadStatus);
     void RenderSceneryTab();
     void RenderObjectsTab();
     void RenderLightingTab();
     void RenderAIControllersTab();
     void RenderControllerTab();
-    void RenderJoystickTab();
+    void RenderJoystickTab(JoystickSettings& js, int& joystickId, TabPanelEnum tab, SettingsStatus clearStatus);
 
     // Bottom buttons rendering (returns load/save/delete status if clicked)
     void RenderBottomButtons(SettingsStatus loadStatus, SettingsStatus saveStatus,
@@ -257,6 +268,7 @@ void SettingsMenu::RenderContent()
     tabLabels[tabCount] = TXT(PS_OPTIONS1);      tabIndices[tabCount] = TAB_OPTIONS1;      tabCount++;
     tabLabels[tabCount] = TXT(PS_OPTIONS2);      tabIndices[tabCount] = TAB_OPTIONS2;      tabCount++;
     tabLabels[tabCount] = TXT(PS_AEROPLANE);     tabIndices[tabCount] = TAB_AEROPLANE;     tabCount++;
+    tabLabels[tabCount] = TXT(PS_AEROPLANE2);    tabIndices[tabCount] = TAB_AEROPLANE2;    tabCount++;
     tabLabels[tabCount] = TXT(PS_SCENERY);       tabIndices[tabCount] = TAB_SCENERY;       tabCount++;
     tabLabels[tabCount] = TXT(PS_OBJECTS);       tabIndices[tabCount] = TAB_OBJECTS;        tabCount++;
     tabLabels[tabCount] = TXT(PS_LIGHTING);      tabIndices[tabCount] = TAB_LIGHTING;      tabCount++;
@@ -265,6 +277,7 @@ void SettingsMenu::RenderContent()
     if (ShowJoystickInGame(mGameSettings))
     {
         tabLabels[tabCount] = TXT(PS_JOYSTICK);  tabIndices[tabCount] = TAB_JOYSTICK;      tabCount++;
+        tabLabels[tabCount] = TXT(PS_JOYSTICK2); tabIndices[tabCount] = TAB_JOYSTICK2;     tabCount++;
     }
 
     // Map sSelectedTab to strip index for rendering
@@ -309,13 +322,15 @@ void SettingsMenu::RenderContent()
     {
         case TAB_OPTIONS1:      RenderOptions1Tab(); break;
         case TAB_OPTIONS2:      RenderOptions2Tab(); break;
-        case TAB_AEROPLANE:     RenderAeroplaneTab(); break;
+        case TAB_AEROPLANE:     RenderAeroplaneTab(mGameSettings.mAeroplaneSettings, TAB_AEROPLANE, SETTINGS_LOAD_AEROPLANE); break;
+        case TAB_AEROPLANE2:    RenderAeroplaneTab(mGameSettings.mAeroplaneSettings2, TAB_AEROPLANE2, SETTINGS_LOAD_AEROPLANE2); break;
         case TAB_SCENERY:       RenderSceneryTab(); break;
         case TAB_OBJECTS:       RenderObjectsTab(); break;
         case TAB_LIGHTING:      RenderLightingTab(); break;
         case TAB_AICONTROLLERS: RenderAIControllersTab(); break;
         case TAB_CONTROLLER:    RenderControllerTab(); break;
-        case TAB_JOYSTICK:      RenderJoystickTab(); break;
+        case TAB_JOYSTICK:      RenderJoystickTab(mGameSettings.mJoystickSettings, mGameSettings.mOptions.mJoystickID, TAB_JOYSTICK, SETTINGS_CLEAR_JOYSTICK); break;
+        case TAB_JOYSTICK2:     RenderJoystickTab(mGameSettings.mJoystickSettings2, mGameSettings.mOptions.mJoystickID2, TAB_JOYSTICK2, SETTINGS_CLEAR_JOYSTICK2); break;
     }
 
     ImGui::EndChild();
@@ -338,6 +353,11 @@ void SettingsMenu::RenderContent()
             loadStatus = SETTINGS_LOAD_AEROPLANE;
             saveStatus = SETTINGS_SAVE_AEROPLANE;
             deleteStatus = SETTINGS_DELETE_AEROPLANE;
+            break;
+        case TAB_AEROPLANE2:
+            loadStatus = SETTINGS_LOAD_AEROPLANE2;
+            saveStatus = SETTINGS_SAVE_AEROPLANE2;
+            deleteStatus = SETTINGS_DELETE_AEROPLANE2;
             break;
         case TAB_SCENERY:
             loadStatus = SETTINGS_LOAD_ENVIRONMENT;
@@ -376,6 +396,11 @@ void SettingsMenu::RenderContent()
             loadStatus = SETTINGS_LOAD_JOYSTICK;
             saveStatus = SETTINGS_SAVE_JOYSTICK;
             deleteStatus = SETTINGS_DELETE_JOYSTICK;
+            break;
+        case TAB_JOYSTICK2:
+            loadStatus = SETTINGS_LOAD_JOYSTICK2;
+            saveStatus = SETTINGS_SAVE_JOYSTICK2;
+            deleteStatus = SETTINGS_DELETE_JOYSTICK2;
             break;
     }
 
@@ -932,12 +957,11 @@ void SettingsMenu::RenderOptions2Tab()
 }
 
 //======================================================================================================================
-void SettingsMenu::RenderAeroplaneTab()
+void SettingsMenu::RenderAeroplaneTab(AeroplaneSettings& as, TabPanelEnum tab, SettingsStatus loadStatus)
 {
-    AeroplaneSettings& as = mGameSettings.mAeroplaneSettings;
     AIAeroplaneSettings& aias = as.mAIAeroplaneSettings;
     Language language = mGameSettings.mOptions.mLanguage;
-    bool advanced = sAdvancedEnabled[TAB_AEROPLANE];
+    bool advanced = sAdvancedEnabled[tab];
     bool allowSettings = mGameSettings.mChallengeSettings.mAllowAeroplaneSettings;
     bool isGlider = !(as.mType & 2);  // Not powered
     bool isNotHeli = !(as.mType & 1); // Not helicopter/control line
@@ -949,7 +973,7 @@ void SettingsMenu::RenderAeroplaneTab()
     if (SettingsWidgets::ThumbnailButton(thumbnail, as.mTitle.c_str(), as.mInfo.c_str(),
         thumbnailHeight, &sImageButtonX, &sImageButtonY, &sImageButtonW, &sImageButtonH))
     {
-        mStatus = SETTINGS_LOAD_AEROPLANE;
+        mStatus = loadStatus;
     }
 
     // Website button (optional - only shown if URL is set)
@@ -2177,11 +2201,10 @@ void SettingsMenu::RenderControllerTab()
 }
 
 //======================================================================================================================
-void SettingsMenu::RenderJoystickTab()
+void SettingsMenu::RenderJoystickTab(JoystickSettings& js, int& joystickId, TabPanelEnum tab, SettingsStatus clearStatus)
 {
-    JoystickSettings& js = mGameSettings.mJoystickSettings;
     Language language = mGameSettings.mOptions.mLanguage;
-    bool advanced = sAdvancedEnabled[TAB_JOYSTICK];
+    bool advanced = sAdvancedEnabled[tab];
 
     bool joystickAvailable = JoystickAvailable();
 
@@ -2193,7 +2216,7 @@ void SettingsMenu::RenderJoystickTab()
 
     // Get joystick status
     JoystickData joystick;
-    bool hasJoystick = S3E_RESULT_SUCCESS == GetJoystickStatus(joystick, mGameSettings.mOptions.mJoystickID);
+    bool hasJoystick = S3E_RESULT_SUCCESS == GetJoystickStatus(joystick, joystickId);
 
     // Joystick settings
     SettingsWidgets::SectionHeader(TXT(PS_EXTERNALJOYSTICKSETTINGS));
@@ -2209,13 +2232,13 @@ void SettingsMenu::RenderJoystickTab()
             SettingsWidgets::InfoLabel(TXT(PS_JOYSTICKINFO), TXT(PS_NOJOYSTICKWITHID));
         }
 
-        SettingsWidgets::SliderInt(TXT(PS_JOYSTICKID), mGameSettings.mOptions.mJoystickID, 0, 4);
+        SettingsWidgets::SliderInt(TXT(PS_JOYSTICKID), joystickId, 0, 4);
         SettingsWidgets::Checkbox(TXT(PS_ENABLEJOYSTICK), js.mEnableJoystick);
         SettingsWidgets::Checkbox(TXT(PS_ADJUSTFORCIRCULARSTICKMOVEMENT), js.mAdjustForCircularSticks);
 
         if (SettingsWidgets::Button(TXT(PS_CLEARJOYSTICKSETTINGS)))
         {
-            mStatus = SETTINGS_CLEAR_JOYSTICK;
+            mStatus = clearStatus;
         }
 
         if (mGameSettings.mOptions.mFrameworkSettings.isWindows())
@@ -2577,6 +2600,33 @@ void DisplaySettingsMenu(GameSettings& gameSettings, SettingsChangeActions& acti
         {
             FileMenuDelete(gameSettings, userJoystick.c_str(), ".xml", TXT(PS_DELETEJOYSTICK));
         }
+        else if (settingsStatus == SETTINGS_LOAD_JOYSTICK2)
+        {
+            // Player 2 (split-screen test) - same joystick preset browser,
+            // loads into gameSettings.mJoystickSettings2 instead.
+            std::string file;
+            FileMenuLoad(file, gameSettings, "SystemSettings/Joystick", userJoystick.c_str(), ".xml",
+                TXT(PS_LOADJOYSTICK), 0, 0, TXT(PS_BACK), NULL);
+            if (!file.empty())
+            {
+                TRACE_FILE_IF(ONCE_1) TRACE("Loading Joystick 2 %s", file.c_str());
+                gameSettings.mJoystickSettings2.LoadFromFile(file);
+            }
+        }
+        else if (settingsStatus == SETTINGS_SAVE_JOYSTICK2)
+        {
+            std::string file;
+            FileMenuSave(file, gameSettings, userJoystick.c_str(), ".xml", TXT(PS_SAVEJOYSTICK));
+            if (!file.empty())
+            {
+                TRACE_FILE_IF(ONCE_1) TRACE("Saving Joystick 2 %s", file.c_str());
+                gameSettings.mJoystickSettings2.SaveToFile(file);
+            }
+        }
+        else if (settingsStatus == SETTINGS_DELETE_JOYSTICK2)
+        {
+            FileMenuDelete(gameSettings, userJoystick.c_str(), ".xml", TXT(PS_DELETEJOYSTICK));
+        }
         else if (settingsStatus == SETTINGS_LOAD_AEROPLANE)
         {
             SelectAndLoadAeroplane(gameSettings, TXT(PS_LOADAEROPLANE), TXT(PS_BACK), NULL);
@@ -2592,6 +2642,26 @@ void DisplaySettingsMenu(GameSettings& gameSettings, SettingsChangeActions& acti
             }
         }
         else if (settingsStatus == SETTINGS_DELETE_AEROPLANE)
+        {
+            FileMenuDelete(gameSettings, userAeroplane.c_str(), ".xml", TXT(PS_DELETEAEROPLANE));
+        }
+        else if (settingsStatus == SETTINGS_LOAD_AEROPLANE2)
+        {
+            // Player 2 (split-screen test) - same aeroplane file browser, loads
+            // into gameSettings.mAeroplaneSettings2 instead.
+            SelectAndLoadAeroplane2(gameSettings, TXT(PS_LOADAEROPLANE), TXT(PS_BACK), NULL);
+        }
+        else if (settingsStatus == SETTINGS_SAVE_AEROPLANE2)
+        {
+            std::string file;
+            FileMenuSave(file, gameSettings, userAeroplane.c_str(), ".xml", TXT(PS_SAVEAEROPLANE));
+            if (!file.empty())
+            {
+                TRACE_FILE_IF(ONCE_1) TRACE("Saving Aeroplane 2 %s", file.c_str());
+                gameSettings.mAeroplaneSettings2.SaveToFile(file);
+            }
+        }
+        else if (settingsStatus == SETTINGS_DELETE_AEROPLANE2)
         {
             FileMenuDelete(gameSettings, userAeroplane.c_str(), ".xml", TXT(PS_DELETEAEROPLANE));
         }
@@ -2707,6 +2777,19 @@ void DisplaySettingsMenu(GameSettings& gameSettings, SettingsChangeActions& acti
         {
             // Clear all joystick overrides
             JoystickSettings& js = gameSettings.mJoystickSettings;
+            for (int i = 0; i < JoystickSettings::JOYSTICK_NUM_CONTROLS; ++i)
+            {
+                js.mJoystickAnalogueOverrides[i] = JoystickSettings::JoystickAnalogueOverride();
+            }
+            for (int i = 0; i < JoystickSettings::JOYSTICK_NUM_BUTTONS; ++i)
+            {
+                js.mJoystickButtonOverrides[i] = JoystickSettings::JoystickButtonOverride();
+            }
+        }
+        else if (settingsStatus == SETTINGS_CLEAR_JOYSTICK2)
+        {
+            // Clear all joystick overrides for player 2
+            JoystickSettings& js = gameSettings.mJoystickSettings2;
             for (int i = 0; i < JoystickSettings::JOYSTICK_NUM_CONTROLS; ++i)
             {
                 js.mJoystickAnalogueOverrides[i] = JoystickSettings::JoystickAnalogueOverride();
