@@ -38,8 +38,13 @@ inline float EvaluateFivePointCurve(const float curve[NUM_THROTTLE_CURVE_POINTS]
 //======================================================================================================================
 struct SettingsChangeActions
 {
-    SettingsChangeActions() : mReloadAeroplane(false), mReloadTerrain(false), mReloadAI(false), mResetAI(false), mRecalcWind(false), mRestartChallenge(false) {}
+    SettingsChangeActions() : mReloadAeroplane(false), mReloadAeroplane2(false), mReloadTerrain(false), mReloadAI(false), mResetAI(false), mRecalcWind(false), mRestartChallenge(false) {}
     bool mReloadAeroplane;
+    // Player 2 (split-screen test) equivalent of mReloadAeroplane - separate
+    // flag because AeroplaneSettings::GetSettingsChangeActions (via the
+    // COMPARE_FOR_AEROPLANE macro) always targets mReloadAeroplane, and that's
+    // player 1's aeroplane/challenge/relaunch path, not player 2's.
+    bool mReloadAeroplane2;
     bool mReloadTerrain;
     bool mReloadAI;
     bool mResetAI;
