@@ -300,10 +300,14 @@ void SettingsMenu::RenderContent()
     float contentHeight = height - topY - bottomButtonsHeight;
 
     // Use per-tab child window IDs so each tab maintains its own scroll position
+    // Must have exactly one entry per TabPanelEnum value, in that order -
+    // this was short 2 entries (missing Aeroplane2/Joystick/Joystick2), which
+    // left tabContentIds[TAB_JOYSTICK] and [TAB_JOYSTICK2] as null and
+    // crashed ImGui::BeginChild when either joystick tab was selected.
     static const char* tabContentIds[TAB_NUM_TABS] = {
-        "Content_Options1", "Content_Options2", "Content_Aeroplane", "Content_Scenery",
-        "Content_Objects", "Content_Lighting", "Content_AIControllers", "Content_Controller",
-        "Content_Joystick"
+        "Content_Options1", "Content_Options2", "Content_Aeroplane", "Content_Aeroplane2",
+        "Content_Scenery", "Content_Objects", "Content_Lighting", "Content_AIControllers",
+        "Content_Controller", "Content_Joystick", "Content_Joystick2"
     };
 
     ImGui::BeginChild(tabContentIds[sSelectedTab], ImVec2(-1, contentHeight), true);
