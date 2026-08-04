@@ -2926,6 +2926,14 @@ SettingsChangeActions GameSettings::GetSettingsChangeActions(SettingsChangeActio
 {
     settingsChangeActions = mOptions.GetSettingsChangeActions(settingsChangeActions, settings.mOptions);
     settingsChangeActions = mAeroplaneSettings.GetSettingsChangeActions(settingsChangeActions, settings.mAeroplaneSettings);
+    // Player 2 (split-screen test) - mAeroplaneSettings2 was never compared
+    // here at all, so picking a different plane in the "Aeroplane 2" tab had
+    // no way to signal that player 2's aeroplane needs reloading. Doesn't
+    // reuse mAeroplaneSettings2.GetSettingsChangeActions()/COMPARE_FOR_AEROPLANE
+    // since that macro always sets mReloadAeroplane (player 1's flag) -
+    // mName is what actually matters for "load a different plane".
+    if (mAeroplaneSettings2.mName != settings.mAeroplaneSettings2.mName)
+        settingsChangeActions.mReloadAeroplane2 = true;
     settingsChangeActions = mEnvironmentSettings.GetSettingsChangeActions(settingsChangeActions, settings.mEnvironmentSettings);
     settingsChangeActions = mObjectsSettings.GetSettingsChangeActions(settingsChangeActions, settings.mObjectsSettings);
     settingsChangeActions = mAIControllersSettings.GetSettingsChangeActions(settingsChangeActions, settings.mAIControllersSettings);
