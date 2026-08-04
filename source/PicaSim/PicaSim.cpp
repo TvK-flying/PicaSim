@@ -797,6 +797,18 @@ PicaSim::UpdateResult PicaSim::Update(int64 deltaTimeMs)
             mChallenge->Relaunched();
         }
 
+        if (actions.mReloadAeroplane2 && mPlayer2Aeroplane)
+        {
+            TRACE_FILE_IF(ONCE_1) TRACE("Reloading aeroplane 2");
+            if (!loadingScreen)
+                loadingScreen = new LoadingScreen("Loading", mGameSettings, true, true, true);
+            mPlayer2Aeroplane->Terminate();
+            mPlayer2Aeroplane->Init(
+                mGameSettings.mAeroplaneSettings2,
+                0,
+                loadingScreen);
+        }
+
         if (actions.mRecalcWind)
         {
             TRACE_FILE_IF(ONCE_1) TRACE("Recalculating wind");
@@ -856,6 +868,8 @@ PicaSim::UpdateResult PicaSim::Update(int64 deltaTimeMs)
 
         // Update the aeroplane settings just in case they got changed
         mPlayerAeroplane->SetAeroplaneSettings(mGameSettings.mAeroplaneSettings);
+        if (mPlayer2Aeroplane)
+            mPlayer2Aeroplane->SetAeroplaneSettings(mGameSettings.mAeroplaneSettings2);
     }
 
     // L to reload the plane
