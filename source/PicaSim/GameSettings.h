@@ -12,6 +12,29 @@
 
 bool GetFileChecksum(uint32& checksum, const char* file);
 
+// Number of points in the 5-point throttle curve (0%/25%/50%/75%/100% output
+// heights). Kept at file scope (rather than only nested inside
+// ControllerSettings::ControlSetting) so JetEngine/PropellerEngine's
+// independent per-engine throttle curves can use it without fully qualifying
+// ControllerSettings::ControlSetting::NUM_THROTTLE_CURVE_POINTS.
+static const int NUM_THROTTLE_CURVE_POINTS = 5;
+
+// Evaluates a 5-point curve (as above) at unsigned input position x (0..1),
+// linearly interpolating between the two points either side of x. Free-
+// function equivalent of ControllerSettings::ControlSetting::
+// EvaluateThrottleCurve, used by JetEngine/PropellerEngine for their
+// independent per-engine throttle curves.
+inline float EvaluateFivePointCurve(const float curve[NUM_THROTTLE_CURVE_POINTS], float x)
+{
+    x = ClampToRange(x, 0.0f, 1.0f);
+    float scaledX = x * (NUM_THROTTLE_CURVE_POINTS - 1);
+    int index = (int) scaledX;
+    if (index >= NUM_THROTTLE_CURVE_POINTS - 1)
+        index = NUM_THROTTLE_CURVE_POINTS - 2;
+    float frac = scaledX - index;
+    return curve[index] + (curve[index + 1] - curve[index]) * frac;
+}
+
 //======================================================================================================================
 struct SettingsChangeActions
 {
@@ -83,9 +106,19 @@ struct ControllerSettings : public Settings
         CONTROL_CLAMP_MAX
     };
 
+    // 4D thrust-vectoring mode - how much the engine physically gimbals with
+    // elevator/rudder stick input while flying backward in 4D mode. See
+    // PropellerEngine::UpdatePrePhysics and Wing::UpdateControl.
+    enum VectorMode
+    {
+        VECTOR_MODE_NONE,
+        VECTOR_MODE_SINGLE,
+        VECTOR_MODE_TWOAXIS
+    };
+
     struct ControlSetting
     {
-        static const int NUM_THROTTLE_CURVE_POINTS = 5;
+        static const int NUM_THROTTLE_CURVE_POINTS = ::NUM_THROTTLE_CURVE_POINTS;
 
         // Note that each control input has a normal range of -1 to +1
         ControlSetting() : mAutoCentre(true), mClamp(CONTROL_CLAMP_NONE), mScale(1.0f), mExponential(1.0f), mTrim(0.0f), mUseThrottleCurve(false)
