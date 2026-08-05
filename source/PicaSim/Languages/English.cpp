@@ -54,6 +54,7 @@ void InitStringsEN(const char** txt)
   txt[PS_LIGHTING] = "Lighting";
   txt[PS_AICONTROLLERS] = "AI Controllers";
   txt[PS_CONTROLLER] = "Controller";
+  txt[PS_CONTROLLER2] = "Controller 2";
   txt[PS_JOYSTICK] = "Joystick";
   txt[PS_JOYSTICK2] = "Joystick 2";
   txt[PS_LOAD] = "Load...";
@@ -66,6 +67,8 @@ void InitStringsEN(const char** txt)
   txt[PS_FILENAME] = "Filename:";
   txt[PS_LANGUAGESETTINGS] = "Language settings";
   txt[PS_CURRENTLANGUAGE] = "Current language";
+  txt[PS_MULTIPLAYERSETTINGS] = "Multiplayer";
+  txt[PS_ENABLESPLITSCREEN] = "Enable player 2 (split-screen test - needs 2 joysticks, takes effect from the start menu, not an in-flight relaunch)";
   txt[PS_CAMERASETTINGS] = "Camera settings";
   txt[PS_ZOOMVIEW] = "Zoom view";
   txt[PS_PLANEONLYINZOOMVIEW] = "Draw plane alone in zoom view";
