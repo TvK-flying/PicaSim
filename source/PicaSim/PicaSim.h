@@ -85,9 +85,10 @@ public:
     const Aeroplane* GetPlayerAeroplane() const {return mPlayerAeroplane.get();}
 
     // Second local player, for split-screen testing. Null unless a second
-    // player controller was actually created (see kEnableSplitScreenTest in
-    // PicaSim.cpp) - always check for null before use, same as any optional
-    // pointer, since single-player and non-test builds never create this.
+    // player controller was actually created (see Options::mEnableSplitScreen
+    // and PicaSim::Init in PicaSim.cpp) - always check for null before use,
+    // same as any optional pointer, since single-player and non-test builds
+    // never create this.
     Aeroplane* GetPlayer2Aeroplane() {return mPlayer2Aeroplane.get();}
     const Aeroplane* GetPlayer2Aeroplane() const {return mPlayer2Aeroplane.get();}
 
@@ -155,7 +156,7 @@ private:
 
     // Second local player, for split-screen testing (Phase 1: input/
     // simulation only, no second viewport yet). Only created when
-    // kEnableSplitScreenTest is true and a second joystick is present -
+    // Options::mEnableSplitScreen is on and a second joystick is present -
     // see PicaSim::Create(). Both stay null otherwise, so nothing about
     // single-player changes.
     std::unique_ptr<Aeroplane> mPlayer2Aeroplane;
@@ -214,6 +215,10 @@ private:
     // mapping table as player 1 for now (see the per-player joystick
     // settings note in HumanController.h).
     bool mPrevJoystick2Relaunch = false;
+    // Auto-respawn-on-crash timer for player 2 (split-screen test) - mirrors
+    // ChallengeFreeFly::mOnGroundTime, since player 2 has no Challenge
+    // instance of its own to track this for it.
+    float mOnGroundTime2 = 0.0f;
 };
 
 #endif
