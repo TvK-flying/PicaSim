@@ -454,6 +454,10 @@ void InitStringsEN(const char** txt)
   txt[PS_TREATTHROTTLEASBRAKES] = "Treat throttle stick as brakes";
   txt[PS_RESETALTSETTINGONLAUNCH] = "Reset configuration on launch";
   txt[PS_NUMCONFIGURATIONS] = "Number of configurations";
+  txt[PS_VECTORMODE] = "4D thrust vectoring";
+  txt[PS_VECTORMODE_NONE] = "No vector (fixed engine)";
+  txt[PS_VECTORMODE_SINGLE] = "Single axis (rudder only)";
+  txt[PS_VECTORMODE_TWOAXIS] = "Two axis (elevator + rudder)";
   txt[PS_TILTHORIZONTAL] = "Tilt horizontal";
   txt[PS_TILTVERTICAL] = "Tilt vertical";
   txt[PS_ARROWSHORIZONTAL] = "Arrows horizontal";
