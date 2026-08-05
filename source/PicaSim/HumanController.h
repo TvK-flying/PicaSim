@@ -53,6 +53,12 @@ public:
 
     float GetElevatorTrim() const OVERRIDE {return mElevatorTrim;}
 
+    // Which 4D thrust-vectoring mode this pilot has selected (see
+    // ControllerSettings::VectorMode) - previously never overridden, so this
+    // always fell through to Controller's default (VECTOR_MODE_NONE) and the
+    // whole 4D-vectoring feature was a no-op regardless of this setting.
+    int GetVectorMode() const OVERRIDE {return GetControllerSettings().mVectorMode;}
+
     void RenderOverlayUpdate(int renderLevel, DisplayConfig& displayConfig) OVERRIDE;
 
 private:
