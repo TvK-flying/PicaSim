@@ -106,25 +106,25 @@ static bool GetButtonInUse(const ControllerSettings& controllerSettings, int but
 }
 
 //======================================================================================================================
-uint32 GetStickVisibleMask(const GameSettings& gs, const Aeroplane* aeroplane)
+uint32 GetStickVisibleMask(const ControllerSettings& controllerSettings, int controllerMode, const Aeroplane* aeroplane)
 {
     uint32 result = 0;
 
-    if (GetStickInUse(gs.mControllerSettings, gs.mOptions.mControllerMode, ControllerSettings::CONTROLLER_RIGHT_HORIZONTAL))
+    if (GetStickInUse(controllerSettings, controllerMode, ControllerSettings::CONTROLLER_RIGHT_HORIZONTAL))
         result |= STICK_RIGHT | STICK_RIGHT_HORIZONTAL;
-    if (GetStickInUse(gs.mControllerSettings, gs.mOptions.mControllerMode, ControllerSettings::CONTROLLER_RIGHT_VERTICAL))
+    if (GetStickInUse(controllerSettings, controllerMode, ControllerSettings::CONTROLLER_RIGHT_VERTICAL))
         result |= STICK_RIGHT | STICK_RIGHT_VERTICAL;
 
-    if (GetStickInUse(gs.mControllerSettings, gs.mOptions.mControllerMode, ControllerSettings::CONTROLLER_LEFT_HORIZONTAL))
+    if (GetStickInUse(controllerSettings, controllerMode, ControllerSettings::CONTROLLER_LEFT_HORIZONTAL))
         result |= STICK_LEFT | STICK_LEFT_HORIZONTAL;
-    if (GetStickInUse(gs.mControllerSettings, gs.mOptions.mControllerMode, ControllerSettings::CONTROLLER_LEFT_VERTICAL))
+    if (GetStickInUse(controllerSettings, controllerMode, ControllerSettings::CONTROLLER_LEFT_VERTICAL))
         result |= STICK_LEFT | STICK_LEFT_VERTICAL;
 
-    if (GetButtonInUse(gs.mControllerSettings, 0, aeroplane))
+    if (GetButtonInUse(controllerSettings, 0, aeroplane))
         result |= BUTTON_0;
-    if (GetButtonInUse(gs.mControllerSettings, 1, aeroplane))
+    if (GetButtonInUse(controllerSettings, 1, aeroplane))
         result |= BUTTON_1;
-    if (GetButtonInUse(gs.mControllerSettings, 2, aeroplane))
+    if (GetButtonInUse(controllerSettings, 2, aeroplane))
         result |= BUTTON_2;
 
     return result;
@@ -189,7 +189,7 @@ HumanController::~HumanController()
 void HumanController::UpdateScreenSticks(float deltaTime)
 {
     const ControllerSettings::ControlSetting* controlSettings = 
-        mGameSettings.mControllerSettings.GetControlSettings();
+        GetControllerSettings().GetControlSettings();
     const Options& options = mGameSettings.mOptions;
 
     bool usingStaggered = mGameSettings.mOptions.mControllerStaggered;
@@ -353,14 +353,14 @@ void HumanController::UpdateScreenSticks(float deltaTime)
             mInputControls[GetControlForStick(ControllerSettings::CONTROLLER_RIGHT_HORIZONTAL, options.mControllerMode)] = ExponentialApproach(
                 mInputControls[GetControlForStick(ControllerSettings::CONTROLLER_RIGHT_HORIZONTAL, options.mControllerMode)], 
                 0.0f, 
-                deltaTime, mGameSettings.mControllerSettings.mControllerStickDecayTime);
+                deltaTime, GetControllerSettings().mControllerStickDecayTime);
         }
         if (controlSettings[GetControlForStick(ControllerSettings::CONTROLLER_RIGHT_VERTICAL, options.mControllerMode)].mAutoCentre)
         {
             mInputControls[GetControlForStick(ControllerSettings::CONTROLLER_RIGHT_VERTICAL, options.mControllerMode)] = ExponentialApproach(
                 mInputControls[GetControlForStick(ControllerSettings::CONTROLLER_RIGHT_VERTICAL, options.mControllerMode)], 
                 0.0f, 
-                deltaTime, mGameSettings.mControllerSettings.mControllerStickDecayTime);
+                deltaTime, GetControllerSettings().mControllerStickDecayTime);
         }
     }
 
@@ -388,14 +388,14 @@ void HumanController::UpdateScreenSticks(float deltaTime)
             mInputControls[GetControlForStick(ControllerSettings::CONTROLLER_LEFT_HORIZONTAL, options.mControllerMode)] = ExponentialApproach(
                 mInputControls[GetControlForStick(ControllerSettings::CONTROLLER_LEFT_HORIZONTAL, options.mControllerMode)], 
                 0.0f, 
-                deltaTime, mGameSettings.mControllerSettings.mControllerStickDecayTime);
+                deltaTime, GetControllerSettings().mControllerStickDecayTime);
         }
         if (controlSettings[GetControlForStick(ControllerSettings::CONTROLLER_LEFT_VERTICAL, options.mControllerMode)].mAutoCentre)
         {
             mInputControls[GetControlForStick(ControllerSettings::CONTROLLER_LEFT_VERTICAL, options.mControllerMode)] = ExponentialApproach(
                 mInputControls[GetControlForStick(ControllerSettings::CONTROLLER_LEFT_VERTICAL, options.mControllerMode)], 
                 0.0f, 
-                deltaTime, mGameSettings.mControllerSettings.mControllerStickDecayTime);
+                deltaTime, GetControllerSettings().mControllerStickDecayTime);
         }
     }
 
@@ -439,8 +439,8 @@ void HumanController::UpdateAccelerometer(float deltaTime)
     bool accelerometerEnabled = false;
     for (int i = 0 ; i != Controller::MAX_CHANNELS ; ++i)
     {
-        accelerometerEnabled |= mGameSettings.mControllerSettings.mControlPerChannel[i] == ControllerSettings::CONTROLLER_ACCEL_HORIZONTAL;
-        accelerometerEnabled |= mGameSettings.mControllerSettings.mControlPerChannel[i] == ControllerSettings::CONTROLLER_ACCEL_VERTICAL;
+        accelerometerEnabled |= GetControllerSettings().mControlPerChannel[i] == ControllerSettings::CONTROLLER_ACCEL_HORIZONTAL;
+        accelerometerEnabled |= GetControllerSettings().mControlPerChannel[i] == ControllerSettings::CONTROLLER_ACCEL_VERTICAL;
     }
     if (accelerometerEnabled)
     {
@@ -455,12 +455,12 @@ void HumanController::UpdateAccelerometer(float deltaTime)
         Vector3 zAxis((float) -iX, (float) -iY, (float) -iZ);
         zAxis.Normalise();
 
-        float pitchSensitivity = 1 + mGameSettings.mControllerSettings.mControllerAccelerometerYSensitivity * 4.0f;
-        float rollSensitivity = 1 + mGameSettings.mControllerSettings.mControllerAccelerometerXSensitivity * 4.0f;;
+        float pitchSensitivity = 1 + GetControllerSettings().mControllerAccelerometerYSensitivity * 4.0f;
+        float rollSensitivity = 1 + GetControllerSettings().mControllerAccelerometerXSensitivity * 4.0f;;
 
         // Angle is the offset from flat, so 90 would have neutral with the device right out in front,
         // in a vertical mClipPlanes. 0 would have it neutral with it in a horizontal plane.
-        float angle = DegreesToRadians(mGameSettings.mControllerSettings.mControllerAccelerometerOffsetAngle);
+        float angle = DegreesToRadians(GetControllerSettings().mControllerAccelerometerOffsetAngle);
         Quat q(Vector3(-1,0,0), -angle);
         Vector3 rotatedZAxis = q.RotateVector(zAxis);
         mInputControls[ControllerSettings::CONTROLLER_ACCEL_HORIZONTAL] = -rotatedZAxis.x * rollSensitivity;
@@ -489,7 +489,7 @@ void HumanController::UpdateKeyboard(float deltaTime)
 
     for (int i = 0 ; i != Controller::MAX_CHANNELS ; ++i)
     {
-        if (mGameSettings.mControllerSettings.mControlPerChannel[i] == ControllerSettings::CONTROLLER_ARROW_HORIZONTAL)
+        if (GetControllerSettings().mControlPerChannel[i] == ControllerSettings::CONTROLLER_ARROW_HORIZONTAL)
         {
             float& input = mInputControls[ControllerSettings::CONTROLLER_ARROW_HORIZONTAL];
             if (Input::GetInstance().GetKeyState(SDLK_LEFT) & KEY_STATE_DOWN)
@@ -506,7 +506,7 @@ void HumanController::UpdateKeyboard(float deltaTime)
                     input = 0.0f;
             }
         }
-        else if (mGameSettings.mControllerSettings.mControlPerChannel[i] == ControllerSettings::CONTROLLER_ARROW_VERTICAL)
+        else if (GetControllerSettings().mControlPerChannel[i] == ControllerSettings::CONTROLLER_ARROW_VERTICAL)
         {
             float& input = mInputControls[ControllerSettings::CONTROLLER_ARROW_VERTICAL];
             if (Input::GetInstance().GetKeyState(SDLK_DOWN) & KEY_STATE_DOWN)
@@ -624,12 +624,12 @@ void HumanController::EntityUpdate(float deltaTime, int entityLevel)
     // Use the real time delta - will ensure we get a good update even when paused
     deltaTime = PicaSim::GetInstance().GetCurrentUpdateDeltaTime();
     const ControllerSettings::ControlSetting* controlSettings = 
-        mGameSettings.mControllerSettings.GetControlSettings();
+        GetControllerSettings().GetControlSettings();
     const Options& options = mGameSettings.mOptions;
 
     UpdateScreenSticks(deltaTime);
 
-    uint32 stickVisibleMask = GetStickVisibleMask(mGameSettings, mAeroplane);
+    uint32 stickVisibleMask = GetStickVisibleMask(GetControllerSettings(), mGameSettings.mOptions.mControllerMode, mAeroplane);
     if (!(stickVisibleMask & STICK_RIGHT_HORIZONTAL))
         mInputControls[GetControlForStick(ControllerSettings::CONTROLLER_RIGHT_HORIZONTAL, options.mControllerMode)] = 0.0f;
     if (!(stickVisibleMask & STICK_RIGHT_VERTICAL))
@@ -658,7 +658,7 @@ void HumanController::EntityUpdate(float deltaTime, int entityLevel)
         mProcessedInputControls[i] = mInputControls[i];
     }
 
-    if (!mGameSettings.mOptions.mControllerBrakesForward && mGameSettings.mControllerSettings.mTreatThrottleAsBrakes)
+    if (!mGameSettings.mOptions.mControllerBrakesForward && GetControllerSettings().mTreatThrottleAsBrakes)
         mProcessedInputControls[ControllerSettings::CONTROLLER_STICK_SPEED] *= -1.0f;
 
     for (size_t i = 0 ; i != ControllerSettings::CONTROLLER_NUM_CONTROLS ; ++i)
@@ -689,8 +689,8 @@ void HumanController::EntityUpdate(float deltaTime, int entityLevel)
 
     for (size_t i = 0 ; i != MAX_CHANNELS ; ++i)
     {
-        if (mGameSettings.mControllerSettings.mControlPerChannel[i] != ControllerSettings::CONTROLLER_NUM_CONTROLS)
-            mOutputControls[i] = mProcessedInputControls[mGameSettings.mControllerSettings.mControlPerChannel[i]];
+        if (GetControllerSettings().mControlPerChannel[i] != ControllerSettings::CONTROLLER_NUM_CONTROLS)
+            mOutputControls[i] = mProcessedInputControls[GetControllerSettings().mControlPerChannel[i]];
         else
             mOutputControls[i] = 0.0f;
     }
@@ -702,7 +702,7 @@ void HumanController::EntityUpdate(float deltaTime, int entityLevel)
     float brakes = mOutputControls[Controller::CHANNEL_THROTTLE];
     float flaps = mOutputControls[Controller::CHANNEL_AUX1];
 
-    const ControllerSettings::Mix& mix = mGameSettings.mControllerSettings.GetCurrentMix();
+    const ControllerSettings::Mix& mix = GetControllerSettings().GetCurrentMix();
     mOutputControls[Controller::CHANNEL_AUX1] += mix.mMixElevatorToFlaps * elevator;
     mOutputControls[Controller::CHANNEL_RUDDER] += mix.mMixAileronToRudder * aileron;
     mOutputControls[Controller::CHANNEL_ELEVATOR] += mix.mMixFlapsToElevator * flaps;
@@ -849,7 +849,7 @@ void HumanController::RenderOverlayUpdate(int renderLevel, DisplayConfig& displa
         return;
     }
 
-    uint32 stickVisibleMask = GetStickVisibleMask(mGameSettings, mAeroplane);
+    uint32 stickVisibleMask = GetStickVisibleMask(GetControllerSettings(), mGameSettings.mOptions.mControllerMode, mAeroplane);
 
     if (!stickVisibleMask)
         return;
