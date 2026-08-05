@@ -178,6 +178,13 @@ struct ControllerSettings : public Settings
 
     bool mResetAltSettingOnLaunch;
     bool mTreatThrottleAsBrakes;
+    // Which 4D thrust-vectoring behaviour this pilot's engine(s) use (see the
+    // VectorMode enum above). Was previously never read by anything - the
+    // HumanController::GetVectorMode() override that's supposed to expose it
+    // didn't exist, so every human-flown aeroplane always got VECTOR_MODE_NONE
+    // regardless of this setting, and the whole 4D-vectoring feature was
+    // silently a no-op. Fixed alongside adding that override.
+    VectorMode mVectorMode;
     int mNumAltSettings;
     int mCurrentAltSetting;
     ControlSetting& GetControlSetting(ControllerControls control, int alt) {return mControlSettings[alt % mNumAltSettings][control];}
