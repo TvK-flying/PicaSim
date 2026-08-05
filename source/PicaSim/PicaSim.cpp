@@ -1252,7 +1252,15 @@ PicaSim::UpdateResult PicaSim::Update(int64 deltaTimeMs)
         if (mPlayer2Aeroplane->GetLaunchMode() == Aeroplane::LAUNCHMODE_AEROTOW)
             touching2 = false;
 
-        if (speed2 < 1.0f && touching2)
+        // Deliberately more lenient than ChallengeFreeFly's original, which
+        // only counts time while touching == true. A crash that ends up not
+        // registering clean ground contact (wedged in scenery, in water,
+        // still tumbling) would otherwise never time out for player 2, and
+        // unlike player 1 there's no manual relaunch key bound by default -
+        // only whatever button player 2's own joystick has mapped. So count
+        // ground time either way: while crashed (any speed/contact state),
+        // or while stationary-and-touching per the original logic.
+        if (mPlayer2Aeroplane->GetCrashed() || (speed2 < 1.0f && touching2))
             mOnGroundTime2 += gameDeltaTime;
         else
             mOnGroundTime2 = 0.0f;
