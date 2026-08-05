@@ -266,6 +266,7 @@ Options::Options() :
     mControllerVerOffset(0.5f),
     mJoystickID(0),
     mJoystickID2(1),
+    mEnableSplitScreen(false),
     mControllerStaggered(false),
     mControllerStyle(CONTROLLER_STYLE_CROSS),
     mControllerAlpha(255),
@@ -405,6 +406,7 @@ bool Options::WriteToDoc(TiXmlDocument& doc) const
     WRITE_DOUBLE_ATTRIBUTE(mControllerVerOffset);
     WRITE_ATTRIBUTE(mJoystickID);
     WRITE_ATTRIBUTE(mJoystickID2);
+    WRITE_ATTRIBUTE(mEnableSplitScreen);
     WRITE_ATTRIBUTE(mControllerStaggered);
     WRITE_ATTRIBUTE(mControllerStyle);
     WRITE_ATTRIBUTE(mControllerAlpha);
@@ -559,6 +561,7 @@ bool Options::ReadFromDoc(TiXmlDocument& doc, bool readAll)
     READ_ATTRIBUTE(mControllerVerOffset);
     READ_ATTRIBUTE(mJoystickID);
     READ_ATTRIBUTE(mJoystickID2);
+    READ_ATTRIBUTE(mEnableSplitScreen);
     READ_ATTRIBUTE(mControllerStaggered);
     READ_ENUM_ATTRIBUTE(mControllerStyle);
     READ_ATTRIBUTE(mControllerAlpha);
