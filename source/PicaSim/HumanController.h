@@ -30,6 +30,14 @@ public:
     // pointed to must outlive this HumanController.
     void SetJoystickSettings(const JoystickSettings* js) {mJoystickSettings = js;}
 
+    // Which rates/channel-mapping/mixing settings this controller uses.
+    // Defaults to null, meaning "use the shared GameSettings.mControllerSettings"
+    // (old single-player behaviour). Point this at a different ControllerSettings
+    // (e.g. GameSettings.mControllerSettings2) to give a second player fully
+    // independent rates, control mapping, and mixing - the object pointed to
+    // must outlive this HumanController.
+    void SetControllerSettings(const ControllerSettings* cs) {mControllerSettings = cs;}
+
     // Shifts this controller's on-screen stick overlay up/down as a fraction
     // of screen height, purely so two controllers' overlays don't render
     // exactly on top of each other before split-screen rendering exists.
@@ -61,6 +69,12 @@ private:
     const class Aeroplane* mAeroplane;
     int mJoystickId = -1; // -1 = use the shared GameSettings.mOptions.mJoystickID
     const JoystickSettings* mJoystickSettings = nullptr; // null = use the shared GameSettings.mJoystickSettings
+    const ControllerSettings* mControllerSettings = nullptr; // null = use the shared GameSettings.mControllerSettings
+
+    // Resolves to whichever ControllerSettings this controller should use -
+    // either the one explicitly set via SetControllerSettings, or (by
+    // default) the shared GameSettings.mControllerSettings.
+    const ControllerSettings& GetControllerSettings() const {return mControllerSettings ? *mControllerSettings : mGameSettings.mControllerSettings;}
 
     float mOutputControls[MAX_CHANNELS];
     float mInputControls[ControllerSettings::CONTROLLER_NUM_CONTROLS];
