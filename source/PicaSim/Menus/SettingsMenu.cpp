@@ -77,6 +77,10 @@ enum SettingsStatus
     SETTINGS_LOAD_CONTROLLER,
     SETTINGS_SAVE_CONTROLLER,
     SETTINGS_DELETE_CONTROLLER,
+    // Player 2 (split-screen test)
+    SETTINGS_LOAD_CONTROLLER2,
+    SETTINGS_SAVE_CONTROLLER2,
+    SETTINGS_DELETE_CONTROLLER2,
     SETTINGS_LOAD_JOYSTICK,
     SETTINGS_SAVE_JOYSTICK,
     SETTINGS_DELETE_JOYSTICK,
@@ -122,6 +126,8 @@ enum TabPanelEnum
     TAB_LIGHTING,
     TAB_AICONTROLLERS,
     TAB_CONTROLLER,
+    // Player 2 (split-screen test)
+    TAB_CONTROLLER2,
     TAB_JOYSTICK,
     TAB_JOYSTICK2,
     TAB_NUM_TABS
@@ -157,7 +163,7 @@ private:
     void RenderObjectsTab();
     void RenderLightingTab();
     void RenderAIControllersTab();
-    void RenderControllerTab();
+    void RenderControllerTab(ControllerSettings& cs, TabPanelEnum tab);
     void RenderJoystickTab(JoystickSettings& js, int& joystickId, TabPanelEnum tab, SettingsStatus clearStatus);
 
     // Bottom buttons rendering (returns load/save/delete status if clicked)
@@ -268,16 +274,26 @@ void SettingsMenu::RenderContent()
     tabLabels[tabCount] = TXT(PS_OPTIONS1);      tabIndices[tabCount] = TAB_OPTIONS1;      tabCount++;
     tabLabels[tabCount] = TXT(PS_OPTIONS2);      tabIndices[tabCount] = TAB_OPTIONS2;      tabCount++;
     tabLabels[tabCount] = TXT(PS_AEROPLANE);     tabIndices[tabCount] = TAB_AEROPLANE;     tabCount++;
-    tabLabels[tabCount] = TXT(PS_AEROPLANE2);    tabIndices[tabCount] = TAB_AEROPLANE2;    tabCount++;
+    if (mGameSettings.mOptions.mEnableSplitScreen)
+    {
+        tabLabels[tabCount] = TXT(PS_AEROPLANE2); tabIndices[tabCount] = TAB_AEROPLANE2;   tabCount++;
+    }
     tabLabels[tabCount] = TXT(PS_SCENERY);       tabIndices[tabCount] = TAB_SCENERY;       tabCount++;
     tabLabels[tabCount] = TXT(PS_OBJECTS);       tabIndices[tabCount] = TAB_OBJECTS;        tabCount++;
     tabLabels[tabCount] = TXT(PS_LIGHTING);      tabIndices[tabCount] = TAB_LIGHTING;      tabCount++;
     tabLabels[tabCount] = TXT(PS_AICONTROLLERS); tabIndices[tabCount] = TAB_AICONTROLLERS;  tabCount++;
     tabLabels[tabCount] = TXT(PS_CONTROLLER);    tabIndices[tabCount] = TAB_CONTROLLER;    tabCount++;
+    if (mGameSettings.mOptions.mEnableSplitScreen)
+    {
+        tabLabels[tabCount] = TXT(PS_CONTROLLER2); tabIndices[tabCount] = TAB_CONTROLLER2; tabCount++;
+    }
     if (ShowJoystickInGame(mGameSettings))
     {
         tabLabels[tabCount] = TXT(PS_JOYSTICK);  tabIndices[tabCount] = TAB_JOYSTICK;      tabCount++;
-        tabLabels[tabCount] = TXT(PS_JOYSTICK2); tabIndices[tabCount] = TAB_JOYSTICK2;     tabCount++;
+        if (mGameSettings.mOptions.mEnableSplitScreen)
+        {
+            tabLabels[tabCount] = TXT(PS_JOYSTICK2); tabIndices[tabCount] = TAB_JOYSTICK2; tabCount++;
+        }
     }
 
     // Map sSelectedTab to strip index for rendering
@@ -307,7 +323,7 @@ void SettingsMenu::RenderContent()
     static const char* tabContentIds[TAB_NUM_TABS] = {
         "Content_Options1", "Content_Options2", "Content_Aeroplane", "Content_Aeroplane2",
         "Content_Scenery", "Content_Objects", "Content_Lighting", "Content_AIControllers",
-        "Content_Controller", "Content_Joystick", "Content_Joystick2"
+        "Content_Controller", "Content_Controller2", "Content_Joystick", "Content_Joystick2"
     };
 
     ImGui::BeginChild(tabContentIds[sSelectedTab], ImVec2(-1, contentHeight), true);
@@ -332,7 +348,8 @@ void SettingsMenu::RenderContent()
         case TAB_OBJECTS:       RenderObjectsTab(); break;
         case TAB_LIGHTING:      RenderLightingTab(); break;
         case TAB_AICONTROLLERS: RenderAIControllersTab(); break;
-        case TAB_CONTROLLER:    RenderControllerTab(); break;
+        case TAB_CONTROLLER:    RenderControllerTab(mGameSettings.mControllerSettings, TAB_CONTROLLER); break;
+        case TAB_CONTROLLER2:   RenderControllerTab(mGameSettings.mControllerSettings2, TAB_CONTROLLER2); break;
         case TAB_JOYSTICK:      RenderJoystickTab(mGameSettings.mJoystickSettings, mGameSettings.mOptions.mJoystickID, TAB_JOYSTICK, SETTINGS_CLEAR_JOYSTICK); break;
         case TAB_JOYSTICK2:     RenderJoystickTab(mGameSettings.mJoystickSettings2, mGameSettings.mOptions.mJoystickID2, TAB_JOYSTICK2, SETTINGS_CLEAR_JOYSTICK2); break;
     }
@@ -395,6 +412,11 @@ void SettingsMenu::RenderContent()
             loadStatus = SETTINGS_LOAD_CONTROLLER;
             saveStatus = SETTINGS_SAVE_CONTROLLER;
             deleteStatus = SETTINGS_DELETE_CONTROLLER;
+            break;
+        case TAB_CONTROLLER2:
+            loadStatus = SETTINGS_LOAD_CONTROLLER2;
+            saveStatus = SETTINGS_SAVE_CONTROLLER2;
+            deleteStatus = SETTINGS_DELETE_CONTROLLER2;
             break;
         case TAB_JOYSTICK:
             loadStatus = SETTINGS_LOAD_JOYSTICK;
@@ -483,6 +505,16 @@ void SettingsMenu::RenderOptions1Tab()
         {
             options.mLanguage = (Language)lang;
         }
+    }
+    SettingsWidgets::EndSettingsBlock();
+
+    // Multiplayer settings - master switch for the player 2 split-screen
+    // test. Hides/shows the Aeroplane 2/Controller 2/Joystick 2 tabs, and
+    // (re)creates or removes player 2 next time a flight starts.
+    SettingsWidgets::SectionHeader(TXT(PS_MULTIPLAYERSETTINGS));
+    SettingsWidgets::BeginSettingsBlock();
+    {
+        SettingsWidgets::Checkbox(TXT(PS_ENABLESPLITSCREEN), options.mEnableSplitScreen);
     }
     SettingsWidgets::EndSettingsBlock();
 
@@ -1899,11 +1931,10 @@ void SettingsMenu::RenderAIControllersTab()
     }
 }
 //======================================================================================================================
-void SettingsMenu::RenderControllerTab()
+void SettingsMenu::RenderControllerTab(ControllerSettings& cs, TabPanelEnum tab)
 {
-    ControllerSettings& cs = mGameSettings.mControllerSettings;
     Language language = mGameSettings.mOptions.mLanguage;
-    bool advanced = sAdvancedEnabled[TAB_CONTROLLER];
+    bool advanced = sAdvancedEnabled[tab];
 
     // Control descriptions for combos
     static const char* controlDescs[ControllerSettings::CONTROLLER_NUM_CONTROLS + 1];
@@ -2576,6 +2607,33 @@ void DisplaySettingsMenu(GameSettings& gameSettings, SettingsChangeActions& acti
             }
         }
         else if (settingsStatus == SETTINGS_DELETE_CONTROLLER)
+        {
+            FileMenuDelete(gameSettings, userController.c_str(), ".xml", TXT(PS_DELETECONTROLLER));
+        }
+        else if (settingsStatus == SETTINGS_LOAD_CONTROLLER2)
+        {
+            // Player 2 (split-screen test) - same file browser/preset pool as
+            // Controller, loads into gameSettings.mControllerSettings2 instead.
+            std::string file;
+            FileMenuLoad(file, gameSettings, "SystemSettings/Controller", userController.c_str(), ".xml",
+                TXT(PS_LOADCONTROLLER), 0, 0, TXT(PS_BACK), NULL);
+            if (!file.empty())
+            {
+                TRACE_FILE_IF(ONCE_1) TRACE("Loading Controller 2 %s", file.c_str());
+                gameSettings.mControllerSettings2.LoadFromFile(file);
+            }
+        }
+        else if (settingsStatus == SETTINGS_SAVE_CONTROLLER2)
+        {
+            std::string file;
+            FileMenuSave(file, gameSettings, userController.c_str(), ".xml", TXT(PS_SAVECONTROLLER));
+            if (!file.empty())
+            {
+                TRACE_FILE_IF(ONCE_1) TRACE("Saving Controller 2 %s", file.c_str());
+                gameSettings.mControllerSettings2.SaveToFile(file);
+            }
+        }
+        else if (settingsStatus == SETTINGS_DELETE_CONTROLLER2)
         {
             FileMenuDelete(gameSettings, userController.c_str(), ".xml", TXT(PS_DELETECONTROLLER));
         }
