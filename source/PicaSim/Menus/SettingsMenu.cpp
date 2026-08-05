@@ -215,7 +215,13 @@ SettingsStatus SettingsMenu::Update()
     mStatus = SETTINGS_UNSET;
 
     // Update input state
+    // Was only ever refreshing device slot mJoystickID (player 1's), so
+    // opening the Joystick 2 tab showed live input from whichever device
+    // player 1's ID pointed at, and only looked like it worked when the two
+    // IDs happened to match. Both slots need refreshing every frame the menu
+    // is open, same as PicaSim::Update() already does during actual flight.
     UpdateJoystick(mGameSettings.mOptions.mJoystickID);
+    UpdateJoystick(mGameSettings.mOptions.mJoystickID2);
 
     int savedTab = sSelectedTab;
 
@@ -1976,6 +1982,15 @@ void SettingsMenu::RenderControllerTab(ControllerSettings& cs, TabPanelEnum tab)
         SettingsWidgets::Checkbox(TXT(PS_RESETALTSETTINGONLAUNCH), cs.mResetAltSettingOnLaunch);
         SettingsWidgets::Checkbox(TXT(PS_TREATTHROTTLEASBRAKES), cs.mTreatThrottleAsBrakes);
         SettingsWidgets::SliderInt(TXT(PS_NUMCONFIGURATIONS), cs.mNumAltSettings, 1, ControllerSettings::CONTROLLER_MAX_NUM_ALT_SETTINGS);
+
+        // 4D thrust-vectoring mode - only matters on an aeroplane with a
+        // vectoring engine (mVectorMaxAngle != 0 - see the Aeroplane tab's
+        // engine settings), but lives here since it's a per-pilot control
+        // choice, not a per-plane one.
+        static const char* vectorModes[] = { TXT(PS_VECTORMODE_NONE), TXT(PS_VECTORMODE_SINGLE), TXT(PS_VECTORMODE_TWOAXIS) };
+        int vectorMode = (int)cs.mVectorMode;
+        if (SettingsWidgets::Combo(TXT(PS_VECTORMODE), vectorMode, vectorModes, 3))
+            cs.mVectorMode = (ControllerSettings::VectorMode)vectorMode;
     }
     SettingsWidgets::EndSettingsBlock();
 
