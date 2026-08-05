@@ -2363,6 +2363,7 @@ ControllerSettings::ControllerSettings() :
     mControllerAccelerometerYSensitivity(0.5f),
     mResetAltSettingOnLaunch(false),
     mTreatThrottleAsBrakes(false),
+    mVectorMode(VECTOR_MODE_NONE),
     mNumAltSettings(1),
     mCurrentAltSetting(0)
 {
@@ -2420,6 +2421,7 @@ bool ControllerSettings::WriteToDoc(TiXmlDocument& doc) const
     WRITE_DOUBLE_ATTRIBUTE(mControllerAccelerometerYSensitivity);
     WRITE_ATTRIBUTE(mResetAltSettingOnLaunch);
     WRITE_ATTRIBUTE(mTreatThrottleAsBrakes);
+    WRITE_ATTRIBUTE(mVectorMode);
     WRITE_ATTRIBUTE(mNumAltSettings);
     WRITE_ATTRIBUTE(mCurrentAltSetting);
     element->SetAttribute("mControlPerChannel_0", mControlPerChannel[Controller::CHANNEL_AILERONS ]);
@@ -2505,6 +2507,7 @@ bool ControllerSettings::ReadFromDoc(TiXmlDocument& doc, bool readAll)
     READ_ATTRIBUTE(mControllerAccelerometerYSensitivity);
     READ_ATTRIBUTE(mResetAltSettingOnLaunch);
     READ_ATTRIBUTE(mTreatThrottleAsBrakes);
+    READ_ENUM_ATTRIBUTE(mVectorMode);
     READ_ATTRIBUTE(mNumAltSettings);
     READ_ATTRIBUTE(mCurrentAltSetting);
     readFromXML(element, "mControlPerChannel_0", (int&) mControlPerChannel[Controller::CHANNEL_AILERONS ]);
