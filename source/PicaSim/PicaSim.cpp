@@ -141,12 +141,19 @@ bool PicaSim::Init(GameSettings& gameSettings, LoadingScreenHelper* loadingScree
     // independent transmitters can each drive their own aeroplane in the
     // same world at once. Added to mCameraAeroplanes so you can cycle the
     // existing camera to it and watch it respond to the second joystick.
-    static const bool kEnableSplitScreenTest = true;
-    if (kEnableSplitScreenTest && gamepadAvailable() && gamepadGetNumDevices() >= 2)
+    // Phase 1 split-screen test: if enabled in settings and there's a second
+    // physical joystick plugged in, spin up a second player controller +
+    // aeroplane bound to it. No second viewport yet (that's Phase 2) - this
+    // just proves two independent transmitters can each drive their own
+    // aeroplane in the same world at once. Added to mCameraAeroplanes so you
+    // can cycle the existing camera to it and watch it respond to the second
+    // joystick.
+    if (mInstance->mGameSettings.mOptions.mEnableSplitScreen && gamepadAvailable() && gamepadGetNumDevices() >= 2)
     {
         mInstance->mPlayer2Controller = std::make_unique<HumanController>(mInstance->mGameSettings);
         mInstance->mPlayer2Controller->SetJoystickId(mInstance->mGameSettings.mOptions.mJoystickID2);
         mInstance->mPlayer2Controller->SetJoystickSettings(&mInstance->mGameSettings.mJoystickSettings2);
+        mInstance->mPlayer2Controller->SetControllerSettings(&mInstance->mGameSettings.mControllerSettings2);
         mInstance->mPlayer2Controller->SetOverlayYOffset(0.5f);
         mInstance->mPlayer2Aeroplane = std::make_unique<Aeroplane>(*mInstance->mPlayer2Controller);
         mInstance->mPlayer2Controller->SetAeroplane(mInstance->mPlayer2Aeroplane.get());
@@ -1228,6 +1235,38 @@ PicaSim::UpdateResult PicaSim::Update(int64 deltaTimeMs)
     {
         // Move/initialise the aeroplane so it's next to the observer
         mPlayerAeroplane->Launch(mInstance->mObserver->GetCameraTransform((void*) 0).GetTrans());
+    }
+
+    // Player 2 auto-respawn (split-screen test) - mirrors ChallengeFreeFly's
+    // auto-relaunch-on-crash/stationary logic, since player 2 has no
+    // Challenge instance of its own tracking this for it. Previously player
+    // 2 only respawned via its own joystick's manual relaunch button
+    // (CheckPlayer2Relaunch above) - a crash with nobody at the controls
+    // (or no relaunch button mapped) just sat there forever.
+    if (mPlayer2Aeroplane)
+    {
+        const AeroplaneSettings& as2 = mGameSettings.mAeroplaneSettings2;
+
+        float speed2 = mPlayer2Aeroplane->GetVelocity().GetLength();
+        bool touching2 = mPlayer2Aeroplane->GetPhysics()->GetContactTime() > 0.0f;
+        if (mPlayer2Aeroplane->GetLaunchMode() == Aeroplane::LAUNCHMODE_AEROTOW)
+            touching2 = false;
+
+        if (speed2 < 1.0f && touching2)
+            mOnGroundTime2 += gameDeltaTime;
+        else
+            mOnGroundTime2 = 0.0f;
+
+        bool relaunch2 =
+            (mOnGroundTime2 > as2.mRelaunchTime && as2.mRelaunchWhenStationary) ||
+            (mPlayer2Aeroplane->GetCrashed() && mOnGroundTime2 > as2.mRelaunchTime);
+
+        if (relaunch2)
+        {
+            mOnGroundTime2 = 0.0f;
+            Vector3 launchPos2 = mInstance->mObserver->GetCameraTransform((void*) 0).GetTrans() + Vector3(10.0f, 0.0f, 0.0f);
+            mPlayer2Aeroplane->Launch(launchPos2);
+        }
     }
 
     RenderManager::GetInstance().Update(mCurrentDeltaTime, gameDeltaTime);
