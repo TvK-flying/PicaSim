@@ -405,6 +405,11 @@ struct Options : public Settings
     // Player 2's device id (split-screen test) - separate from mJoystickID
     // so each player's "which physical joystick" choice is independent.
     int mJoystickID2;
+    // Master switch for the local split-screen test (2 transmitters -> 2
+    // aeroplanes). When off, player 2 is never created and the Aeroplane 2/
+    // Joystick 2/Controller 2 settings tabs are hidden - only the original
+    // single-player tabs show. Set on the Options tab, see PS_ENABLESPLITSCREEN.
+    bool mEnableSplitScreen;
 
     float mGroundViewTerrainLOD;
     float mAeroplaneViewTerrainLOD;
@@ -1129,6 +1134,12 @@ struct GameSettings : public Settings
     LightingSettings mLightingSettings;
     AIControllersSettings mAIControllersSettings;
     ControllerSettings mControllerSettings;
+    // Player 2's rates/channel-mapping/mixing (split-screen test). Deliberately
+    // NOT included in WriteToDoc/ReadFromDoc below, same reason as
+    // mAeroplaneSettings2/mJoystickSettings2 - ControllerSettings::WriteToDoc
+    // hardcodes its own XML element name, so two instances can't share one
+    // doc. Loaded/saved via its own file instead, from the "Controller 2" tab.
+    ControllerSettings mControllerSettings2;
     JoystickSettings mJoystickSettings;
     // Player 2's joystick calibration/button mapping (split-screen test).
     // Deliberately NOT included in WriteToDoc/ReadFromDoc below, same reason
